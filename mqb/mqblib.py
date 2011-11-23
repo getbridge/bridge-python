@@ -13,21 +13,21 @@ class TornadoDriver(object):
     def connect(self, config, open_callback, close_callback):
         ioloop = tornado.ioloop.IOLoop.instance()
 
-        self.connection = puka.Client("amqp://%s:%s@%s:%s/%s" % (config.username, config.password, config.host, config.port, config.vhost))
-        self.connection.connect(callback=open_callback)
+        self.client = puka.Client("amqp://%s:%s@%s:%s/%s" % (config.username, config.password, config.host, config.port, config.vhost))
+        self.client.connect(callback=open_callback)
         self.close_callback = close_callback
 
-        ioloop.add_handler(self.connection.fileno(), self.ioloop_triggered, 0)
+        ioloop.add_handler(self.client.fileno(), self.ioloop_triggered, 0)
         self.update_conn()
-        return self.connection
+        return self.client
 
     def ioloop_triggered(self, fd, events):
         ioloop = tornado.ioloop.IOLoop.instance()
         try:
             if events & ioloop.READ:
-                self.connection.on_read()
+                self.client.on_read()
             if events & ioloop.WRITE:
-                self.connection.on_write()
+                self.client.on_write()
             self.update_conn()
         except Exception, e:
             traceback.print_exc()
@@ -35,13 +35,13 @@ class TornadoDriver(object):
             self.close_callback(e)
 
     def update_conn(self):
+        self.client.run_any_callbacks()
         ioloop = tornado.ioloop.IOLoop.instance()
         state = ioloop.READ
-        if self.connection.needs_write():
+        if self.client.needs_write():
             state |= ioloop.WRITE
         
-        ioloop.update_handler(self.connection.fileno(), state)
-        self.connection.run_any_callbacks()
+        ioloop.update_handler(self.client.fileno(), state)
 
 class MQBConnection(object):
     def __init__(self, **kwargs):
@@ -83,9 +83,7 @@ class MQBConnection(object):
 
     def linked_in(self, result):
         print 'linked_in', result
-        promise = self.client.basic_publish(exchange=USER_EXCHANGE, body="Hello world!")
-        foo = self.client.wait(promise)
-        print 'published', foo, promise
+        self.client.basic_publish(exchange=USER_EXCHANGE, body="Hello world!", routing_key=self.queue_name)
 
     @property
     def queue_name(self):
