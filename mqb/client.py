@@ -5,7 +5,7 @@ import json
 
 class MQBClient(MQBConnection):
     def on_ready(self, result):
-        self.log('SERVICE READY', result)
+        self.log('CLIENT READY', result)
         self.get_auth_ref()
     
     def auth_received(self, authref):
