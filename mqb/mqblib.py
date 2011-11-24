@@ -4,7 +4,7 @@ import tornado.ioloop
 
 from helpers import AttrDict, waitForAll
 
-import uuid
+import uuid, json
 
 class TornadoDriver(object):
     def connect(self, config, open_callback, close_callback):
@@ -48,6 +48,7 @@ class MQBConnection(object):
     }
     DEFAULT_EXCHANGE = 'D_DEFAULT'
     USER_EXCHANGE = 'D_USER'
+    public_name = None
 
     def __init__(self, **kwargs):
         defaults = {
@@ -64,6 +65,26 @@ class MQBConnection(object):
         self.config.update(**kwargs)
 
         self.config['client_id'] = self.config.client_id or uuid.uuid4().hex
+        if not self.public_name:
+            self.public_name = self.config.client_id
+
+        self.lookup_table = {}
+    
+    def store_reference(self, obj):
+        guid = uuid.uuid4().hex
+        self.lookup_table[guid] = obj
+        return guid
+    
+    def resolve_reference(self, guid):
+        return self.lookup_table[guid]
+
+    def send_object(self, target, obj):
+        guid = self.store_reference(obj)
+
+        message = {'from': self.public_name, 'ref': guid}
+        datagram = json.dumps(message)
+        print 'sending', dict(exchange=self.exchange_name, body=datagram, routing_key=str(target))
+        self.publish(exchange=self.exchange_name, body=datagram, routing_key=str(target))
 
     def log(self, *args):
         print self.config.client_id + ': ' + ' '.join( str(x) for x in args)
@@ -125,11 +146,15 @@ class MQBConnection(object):
             'client_exchange': [self.declare_exchange, [], dict(exchange=self.exchange_name)],
         }
     
-    def on_basic_consume(self, *args, **kwargs):
-        self.log('basic consume callback', args, kwargs)
+    def on_message_received(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def on_datagram_received(self, promise, datagram):
+        message = json.loads(datagram['body'])
+        self.on_message_received(message)
 
     def listen_client(self):
-        self.client.basic_consume(queue=self.queue_name, callback=self.on_basic_consume)
+        self.client.basic_consume(queue=self.queue_name, callback=self.on_datagram_received)
 
     def link_client(self):
         return { 
