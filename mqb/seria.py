@@ -3,7 +3,7 @@ import weakref
 
 class NowPromise(object):
     def __init__(self):
-        self.cb = None
+        self.cbs = []
         self.result = None
         self.have_result = False
     
@@ -11,10 +11,11 @@ class NowPromise(object):
         return self
 
     def callback(self, cb):
-        self.cb = cb
+        self.cbs.append(cb)
         self.check_fire()
     
     def set_result(self, result):
+        assert not self.have_result, 'Can only fire once'
         if isinstance(result, NowPromise):
             result.callback(self.set_result)
         else:
@@ -23,8 +24,10 @@ class NowPromise(object):
             self.check_fire()
     
     def check_fire(self):
-        if self.cb and self.have_result:
-            self.cb(self.result)
+        if self.cbs and self.have_result:
+            while self.cbs:
+                cb = self.cbs.pop()
+                cb(self.result)
 
     def __getattr__(self, funcname):
         def callme(*args, **kwargs):
@@ -32,7 +35,7 @@ class NowPromise(object):
         return callme
 
 class NowObject(object):
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent=None, name=None, resolving=False, **kwargs):
         self.children = weakref.WeakValueDictionary()
 
         self.is_original = False
@@ -41,52 +44,56 @@ class NowObject(object):
 
         if not self.parent:
             self.root = self
-            self.pathchain = []
+            self.name = ''
             self.is_original = True
         else:
-            self.pathchain = kwargs.get('pathchain', [])
-            name = None
-            if not self.pathchain:
-                name = kwargs.get('name', uuid.uuid4().hex)
-                self.pathchain = [name]
+            self.name = name
+            if not self.name:
+                self.name = uuid.uuid4().hex
                 self.is_original = True
 
             self.root = self.parent.root
-            if name:
+
+            if not resolving:
+                self.is_original = True
+
+            if self.is_original:
                 self.parent.register(self)
+        
+        self.setup()
     
+    def setup(self):
+        pass # abstract
+
     def register(self, other):
-        self.children[ other.pathchain[0] ] = other
+        self.children[ other.name ] = other
 
     def __getattr__(self, key):
         if key.startswith('handle_'):
             return None
-        pathchain = list(self.pathchain)
-        pathchain.append(key)
-        return NowObject(parent=self, pathchain=pathchain)
+        return NowObject(parent=self, name=key, resolving=True)
 
     def fullpath(self):
         x = []
         y = self
         while y:
-            x.insert(0, '[' + '.'.join(y.pathchain) + ']' )
+            x.insert(0, y.name )
             y = y.parent
         
         fp = '.'.join(x)
         return fp
 
     def __repr__(self):
-        return '<' + self.__class__.__name__ + ' PathHistory: ' + self.fullpath() + '>'
+        return '<' + self.__class__.__name__ + ' Path: ' + self.fullpath() + '>'
     
     def __call__(self, *args, **kwargs):
-        return self.mycall(self.pathchain, *args, **kwargs)
+        return self.prepcall([], *args, **kwargs)
     
-    def mycall(self, pathchain, *args, **kwargs):
+    def prepcall(self, pathchain, *args, **kwargs):
         if not self.is_original:
-            print 'NOT ORIGINAL', self, pathchain
-            return self.parent.mycall(pathchain, *args, **kwargs)
+            pathchain.insert(0, self.name)
+            return self.parent.prepcall(pathchain, *args, **kwargs)
         else:   
-            print 'ORIGINAL', self, pathchain
             return self.call(pathchain, *args, **kwargs)
 
     def call(self, pathchain, *args, **kwargs):
@@ -108,9 +115,12 @@ class NowObject(object):
 
         handler = getattr(self, 'handle_' + next)
         if handler:
-            promise = NowPromise()
-            promise.set_result( handler(*args, **kwargs) )
-            return promise
+            if not pathchain:
+                promise = NowPromise()
+                promise.set_result( handler(*args, **kwargs) )
+                return promise
+            else:
+                raise AttributeError("handler with remaining path %s" % (pathchain))
         
         print self
         raise AttributeError(next)
@@ -121,7 +131,7 @@ class ChatRoom(NowObject):
 
 class AuthService(NowObject):
     def handle_login(self, username, password):
-        print 'LOGIN'
+        print 'LOGIN', username, password
 
         return ChatRoom(self.root)
     
@@ -137,18 +147,13 @@ def main():
     default = NowObject(now, name='default')
     auth = AuthService(default, name='auth')
 
-    print '---'
-
     room = now.default.auth.login(username='enki', password='secret')
     room.callback(prnt)
 
-    print 'room', room
     room.send_message('WORLD')
 
     print '---'
-    print auth.roominfo()
-    
-    # print getattr(now, room.pathchain[0])()
+    auth.roominfo(room)
 
 if __name__ == '__main__':
     main()
