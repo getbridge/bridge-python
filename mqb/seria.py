@@ -1,6 +1,7 @@
 import uuid
 import weakref
 import functools
+import types
 
 class NowPromise(object):
     def __init__(self):
@@ -104,6 +105,8 @@ class PromiseTreeResolver(object):
             pass
         elif isinstance(pivot, tuple):
             pass
+        elif isinstance(pivot, types.FunctionType):
+            pass
         else:
             print 'unknown element', pivot
 
@@ -117,7 +120,8 @@ class NowObject(object):
 
         if not self.parent:
             self.root = self
-            self.name = ''
+            # self.name = ''
+            self.name = uuid.uuid4().hex
             self.is_original = True
         else:
             self.name = name
@@ -149,7 +153,7 @@ class NowObject(object):
             return None
         return NowObject(parent=self, name=key, resolving=True)
 
-    def fullpath(self):
+    def full_path(self):
         x = []
         y = self
         while y:
@@ -160,7 +164,7 @@ class NowObject(object):
         return fp
 
     def __repr__(self):
-        return '<' + self.__class__.__name__ + ' Path: ' + self.fullpath() + '>'
+        return '<' + self.__class__.__name__ + ' Path: ' + self.full_path() + '>'
     
     def __call__(self, *args, **kwargs):
         promise = NowPromise()
@@ -189,12 +193,15 @@ class NowObject(object):
         else:   
             return self.call(pathchain, *args, **kwargs)
 
+    def handle_end(self, *args, **kwargs):
+        print 'END OF PATHCHAIN', self, args, kwargs
+        return self
+
     def call(self, pathchain, *args, **kwargs):
         pathchain = list(pathchain)
 
         if not pathchain:
-            # print 'END OF PATHCHAIN', self
-            return self
+            return self.handle_end(*args, **kwargs)
 
         next = pathchain.pop(0)
 
@@ -209,8 +216,10 @@ class NowObject(object):
             else:
                 raise AttributeError("handler with remaining path %s" % (pathchain))
         
-        print self
-        raise AttributeError(next)
+        self.not_found([next] + pathchain, args, kwargs)
+    
+    def not_found(self, pathchain, args, kwargs):
+        raise AttributeError( pathchain[0] )
     
 class ChatRoom(NowObject):
     def send_message(self, message):
@@ -240,37 +249,80 @@ class AuthService(NowObject):
 def prnt(*args):
     print 'PRNT', ' '.join( repr(x) for x in args )
 
-def test_basic():    
-    # Root Object the client interfaces with
-    now = NowObject()
-    auth = AuthService(now, name='auth')
-    public_chat = ChatServer(now, name='chat')
+class NowClient(NowObject):
+    def serialize_args_kwargs(self, args, kwargs):
+        serialized_args = self.traverse(args)
+        serialized_kwargs = self.traverse(kwargs)
+        print serialized_args, serialized_kwargs
 
-    now.chat().callback(prnt)
+    def traverse(self, pivot, skip_wrap=False):
+        print 'WHUT', pivot, type(pivot)
+        if type(pivot) in (tuple, list):
+            result = ('list', [self.traverse(elem) for elem in pivot])
+        elif isinstance(pivot, dict):
+            result = ('dict', dict([(key, self.traverse(value)) for key, value in pivot.items()]))
+        elif type(pivot) in (str, unicode, basestring):
+            result = ('str', pivot)
+        elif type(pivot) in (int, float):
+            result = ('float', pivot)
+        elif isinstance(pivot, types.FunctionType):
+            wrap = NowObject(self)
+            wrap.handle_end = pivot
+            result = ('now', wrap.full_path())
+        elif isinstance(pivot, NowObject):
+            result = ('now', pivot.full_path())
+        else:
+            raise Exception("Unknown %s" % (type(pivot)))
+        
+        return result
 
-    private_chat = now.auth.login(username='enki', password='secret')
-    private_chat.callback(prnt)
+    def remote_call(self, pathchain, args, kwargs):
+        # print 'REMOTE CALL', pathchain, args, kwargs
+        self.serialize_args_kwargs(args, kwargs)
 
-    flotype = private_chat.join_room('flotype')
-    print 'GOT', flotype
-    flotype.callback(prnt)
-    flotype.send_message('WORLD')
+    def not_found(self, pathchain, args, kwargs):
+        self.remote_call(pathchain, args, kwargs)
 
-    print '---'
-    roominfo = private_chat.roominfo(flotype)
-    roominfo.callback(prnt)
+def test_remote():
+    now = NowClient()
+    
+    def got_result(self, result):
+        print 'GOT RESULT', result
 
-def test_resolver():
-    promise = NowPromise()
-    tree =  {'just': {'yet': ['another', promise,] } }
-    ptree = PromiseTreeResolver(tree)
-    masterpromise = ptree.resolve()
-    masterpromise.callback(prnt)
-    promise.set_result('foo')
+    now.auth.login(username='enki', password='secret', callback=got_result, myclient=now)
+
+# def test_basic():    
+#     # Root Object the client interfaces with
+#     now = NowObject()
+#     auth = AuthService(now, name='auth')
+#     public_chat = ChatServer(now, name='chat')
+
+#     # now.chat().callback(prnt)
+
+#     private_chat = now.auth.login(username='enki', password='secret')
+#     private_chat.callback(prnt)
+
+#     flotype = private_chat.join_room('flotype')
+#     print 'GOT', flotype
+#     flotype.callback(prnt)
+#     flotype.send_message('WORLD')
+
+#     print '---'
+#     roominfo = private_chat.roominfo(flotype)
+#     roominfo.callback(prnt)
+
+# def test_resolver():
+#     promise = NowPromise()
+#     tree =  {'just': {'yet': ['another', promise,] } }
+#     ptree = PromiseTreeResolver(tree)
+#     masterpromise = ptree.resolve()
+#     masterpromise.callback(prnt)
+#     promise.set_result('foo')
 
 def main():
-    test_basic()
+    # test_basic()
     # test_resolver()
+    test_remote()
 
 if __name__ == '__main__':
     main()
