@@ -2,61 +2,6 @@ import uuid
 import weakref
 import functools
 
-class PromiseTreeResolver(object):
-    def __init__(self, tree, callback):
-        self.tree = tree
-        self.callback = callback
-        self.waiting = set()
-        self.fired = False
-
-        self.do_resolve([], self.tree)
-        if not self.waiting and not self.fired:
-            self.callback(self.tree)
-
-    def fulfillPromise(self, data, path=None):
-        if path:
-            self.updateTree(path, data)
-        else:
-            self.tree = data
-        
-        self.waiting.remove(path)
-
-        if not self.waiting:
-            self.fired = True
-            self.callback(self.tree)
-
-    def updateTree(self, origpath, data):
-        path = list(origpath)
-
-        pivot = self.tree
-        while len(path) > 1:
-            pivot = pivot[path.pop(0)]
-        
-        pivot[path.pop(0)] = data
-
-    def registerPromise(self, pivot, path):
-        tpath = tuple(path)
-        self.waiting.add( tpath )
-        pivot.callback( functools.partial(self.fulfillPromise, path=tpath) )
-
-    def do_resolve(self, path, pivot):
-        if isinstance(pivot, dict):
-            for key, value in pivot.items():
-                self.do_resolve(path + [key], value)
-        elif isinstance(pivot, list):
-            for (pos, elem) in enumerate(pivot):
-                self.do_resolve(path + [pos], elem)
-        elif isinstance(pivot, basestring):
-            pass
-        elif isinstance(pivot, int):
-            pass
-        elif isinstance(pivot, float):
-            pass
-        elif isinstance(pivot, NowPromise):
-            self.registerPromise(pivot, path)
-        else:
-            print 'unknown element', pivot
-
 class NowPromise(object):
     def __init__(self):
         self.cbs = []
@@ -91,6 +36,76 @@ class NowPromise(object):
             self.callback( lambda x: promise.set_result(getattr(x, funcname)(*args, **kwargs)) )
             return promise
         return callme
+
+class PromiseTreeResolver(object):
+    def __init__(self, tree):
+        self.tree = tree
+
+        if isinstance(self.tree, tuple):
+            self.tree = list(self.tree)
+
+        self.waiting = set()
+        self.fired = False
+
+    def resolve(self):
+        self.masterpromise = NowPromise()
+        self.do_resolve([], self.tree)
+        if not self.waiting and not self.fired:
+            self.masterpromise.set_result(self.tree)
+        return self.masterpromise
+
+    def fulfillPromise(self, data, path=None):
+        if path:
+            self.updateTree(path, data)
+        else:
+            self.tree = data
+        
+        self.waiting.remove(path)
+
+        if not self.waiting and not self.fired:
+            self.fired = True
+            self.masterpromise.set_result(self.tree)
+
+    def updateTree(self, origpath, data):
+        path = list(origpath)
+
+        pivot = self.tree
+        while len(path) > 1:
+            nextkey = path.pop(0)
+            if isinstance(pivot[nextkey], tuple):
+                pivot[nextkey] = list(pivot[nextkey])
+            pivot = pivot[nextkey]
+        
+        pivot[path.pop(0)] = data
+
+    def registerPromise(self, pivot, path):
+        tpath = tuple(path)
+        self.waiting.add( tpath )
+        pivot.callback( functools.partial(self.fulfillPromise, path=tpath) )
+
+    def do_resolve(self, path, pivot):
+        if isinstance(pivot, dict):
+            for key, value in pivot.items():
+                self.do_resolve(path + [key], value)
+        elif isinstance(pivot, list) or isinstance(pivot,tuple):
+            for (pos, elem) in enumerate(pivot):
+                self.do_resolve(path + [pos], elem)
+        elif isinstance(pivot, basestring):
+            pass
+        elif isinstance(pivot, int):
+            pass
+        elif isinstance(pivot, float):
+            pass
+        elif isinstance(pivot, NowPromise):
+            self.registerPromise(pivot, path)
+        elif isinstance(pivot, NowObject):
+            pass
+        elif isinstance(pivot, type(None)):
+            pass
+        elif isinstance(pivot, tuple):
+            pass
+        else:
+            print 'unknown element', pivot
 
 class NowObject(object):
     def __init__(self, parent=None, name=None, resolving=False, **kwargs):
@@ -148,7 +163,24 @@ class NowObject(object):
         return '<' + self.__class__.__name__ + ' Path: ' + self.fullpath() + '>'
     
     def __call__(self, *args, **kwargs):
-        return self.prepcall([], *args, **kwargs)
+        promise = NowPromise()
+
+        unresolved_args = [args, kwargs]
+        arg_resolver = PromiseTreeResolver(unresolved_args)
+        arg_promise = arg_resolver.resolve()
+        arg_promise.callback( functools.partial(self.receive_resolved_args, promise) )
+        
+        return promise
+
+    def receive_resolved_args(self, promise, resolved_args):
+        args = resolved_args[0]
+        kwargs = resolved_args[1]
+
+        retval = self.prepcall([], *args, **kwargs)
+        retval_resolver = PromiseTreeResolver(retval)
+        retval_promise = retval_resolver.resolve()
+        
+        retval_promise.callback( promise.set_result )
     
     def prepcall(self, pathchain, *args, **kwargs):
         if not self.is_original:
@@ -161,25 +193,19 @@ class NowObject(object):
         pathchain = list(pathchain)
 
         if not pathchain:
-            print 'END OF PATHCHAIN', self
-            promise = NowPromise()
-            promise.set_result(self)
-            return promise
+            # print 'END OF PATHCHAIN', self
+            return self
 
         next = pathchain.pop(0)
 
         child = self.children.get(next, None)
         if child:
-            promise = NowPromise()
-            promise.set_result( child.call(pathchain, *args, **kwargs) )
-            return promise
+            return child.call(pathchain, *args, **kwargs)
 
         handler = getattr(self, 'handle_' + next)
         if handler:
             if not pathchain:
-                promise = NowPromise()
-                promise.set_result( handler(*args, **kwargs) )
-                return promise
+                return handler(*args, **kwargs)
             else:
                 raise AttributeError("handler with remaining path %s" % (pathchain))
         
@@ -197,6 +223,8 @@ class ChatServer(NowObject):
 
     def handle_roominfo(self, room):
         print 'ROOMINFO', room
+        room.callback(prnt)
+        return {'hello': 5}
 
 class AuthService(NowObject):
     def setup(self):
@@ -229,17 +257,20 @@ def test_basic():
     flotype.send_message('WORLD')
 
     print '---'
-    private_chat.roominfo(flotype)
+    roominfo = private_chat.roominfo(flotype)
+    roominfo.callback(prnt)
 
 def test_resolver():
     promise = NowPromise()
     tree =  {'just': {'yet': ['another', promise,] } }
-    ptree = PromiseTreeResolver(tree, prnt)
+    ptree = PromiseTreeResolver(tree)
+    masterpromise = ptree.resolve()
+    masterpromise.callback(prnt)
     promise.set_result('foo')
 
 def main():
-    #test_basic()
-    test_resolver()
+    test_basic()
+    # test_resolver()
 
 if __name__ == '__main__':
     main()
