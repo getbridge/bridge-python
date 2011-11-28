@@ -1,4 +1,15 @@
-from seria import NowObject, NowClient, Exchange
+from seria import NowObject, NowClient
+
+class Exchange(object):
+    def __init__(self):
+        self.clients = {}
+    
+    def register(self, client):
+        # print 'REGISTER', client.name
+        self.clients[client.name] = client
+    
+    def send(self, pathchain, serargskwargs):
+        self.clients[ pathchain[0] ].message_received(pathchain[1:], serargskwargs)
 
 class ChatRoom(NowObject):
     def send_message(self, message):
@@ -36,9 +47,11 @@ def test_remote():
     exchange = Exchange()
 
     server = NowClient(name='default', exchange=exchange)
+    exchange.register(server)
     auth = AuthService(server, name='auth')
 
     now = NowClient(exchange=exchange)
+    exchange.register(now)
     
     class Foo(NowObject):
         def handle_got_result(self, result):

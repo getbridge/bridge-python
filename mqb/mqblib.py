@@ -3,8 +3,7 @@ import traceback
 import tornado.ioloop
 
 from helpers import AttrDict, waitForAll
-
-import uuid, json
+import functools, json
 
 class TornadoDriver(object):
     def connect(self, config, open_callback, close_callback):
@@ -48,9 +47,10 @@ class MQBConnection(object):
     }
     DEFAULT_EXCHANGE = 'D_DEFAULT'
     USER_EXCHANGE = 'D_USER'
-    public_name = None
 
     def __init__(self, **kwargs):
+        self.want_register = []
+        self.connected = False
         defaults = {
             'host': 'localhost',
             'port': 5672,
@@ -64,27 +64,37 @@ class MQBConnection(object):
         self.config = AttrDict(defaults)
         self.config.update(**kwargs)
 
-        self.config['client_id'] = self.config.client_id or uuid.uuid4().hex
-        if not self.public_name:
-            self.public_name = self.config.client_id
-
-        self.lookup_table = {}
+        assert self.config.client_id
     
-    def store_reference(self, obj):
-        guid = uuid.uuid4().hex
-        self.lookup_table[guid] = obj
-        return guid
+    def register(self, name, callback=None):
+        self.want_register.append( (name, callback) )
+        if self.connected:
+            self.empty_register()
+
+    def empty_register(self):
+        while self.want_register:
+            self.register_1( *self.want_register.pop(0) )
+
+    def register_1(self, register_name, callback):
+        waitForAll(functools.partial(self.register_2, register_name, callback), {
+                'declare': [self.declare_queue, [], dict(queue=register_name)],
+            }
+        )
     
-    def resolve_reference(self, guid):
-        return self.lookup_table[guid]
+    def register_2(self, register_name, callback, result):
+        self.client.basic_consume(queue=register_name, callback=self.on_datagram_received)
+        waitForAll(functools.partial(self.register_3, register_name, callback), {
+            'bindq': [self.bind_queue, [], dict(queue=register_name, exchange=self.DEFAULT_EXCHANGE, routing_key=register_name)]
+            }
+        )
 
-    def send_object(self, target, obj):
-        guid = self.store_reference(obj)
+    def register_3(self, register_name, callback, result):
+        self.log('BOUND READY', result)
 
-        message = {'from': self.public_name, 'ref': guid}
-        datagram = json.dumps(message)
-        print 'sending', dict(exchange=self.exchange_name, body=datagram, routing_key=str(target))
-        self.publish(exchange=self.exchange_name, body=datagram, routing_key=str(target))
+        # self.publish(exchange=self.exchange_name, body='hello', routing_key='auth')
+
+        if callback:
+            callback(register_name)
 
     def log(self, *args):
         print self.config.client_id + ': ' + ' '.join( str(x) for x in args)
@@ -94,6 +104,8 @@ class MQBConnection(object):
     
     def connection_made(self, promise, result):
         # self.log('Connected to %s' %(result,))
+
+        self.connected = True
 
         d = self.setup_base()
         d.update( self.setup_client_queue_and_exchange() )
@@ -146,11 +158,15 @@ class MQBConnection(object):
             'client_exchange': [self.declare_exchange, [], dict(exchange=self.exchange_name)],
         }
     
-    def on_message_received(self, *args, **kwargs):
-        raise NotImplementedError
-
     def on_datagram_received(self, promise, datagram):
-        raise NotImplementedError
+        self.log('datagram received', datagram)
+        packet = json.loads(datagram['body'])
+        serargskwargs = packet['serargskwargs']
+        pathchain = packet['pathchain']
+        self.now.message_received(pathchain, serargskwargs)
+
+    def send(self, pathchain, serargskwargs):
+        self.publish(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}) )
 
     def listen_client(self):
         self.client.basic_consume(queue=self.queue_name, callback=self.on_datagram_received)
@@ -158,7 +174,8 @@ class MQBConnection(object):
     def link_client(self):
         return { 
             'queue_bind': [self.bind_queue, [], dict(queue=self.queue_name, exchange=self.USER_EXCHANGE, routing_key=self.queue_name)],
-            'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)]
+            'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)],
+            'send_to_user_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.USER_EXCHANGE)]
         }
 
 

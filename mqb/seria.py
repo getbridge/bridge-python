@@ -3,112 +3,10 @@ import weakref
 import functools
 import types
 
-class NowPromise(object):
-    def __init__(self):
-        self.cbs = []
-        self.result = None
-        self.have_result = False
-    
-    def __call__(self):
-        return self
+from nowpromise import NowPromise
 
-    def callback(self, cb):
-        self.cbs.append(cb)
-        self.check_fire()
-    
-    def set_result(self, result):
-        assert not self.have_result, 'Can only fire once'
-        if isinstance(result, NowPromise):
-            result.callback(self.set_result)
-        else:
-            self.result = result
-            self.have_result = True
-            self.check_fire()
-    
-    def check_fire(self):
-        if self.cbs and self.have_result:
-            while self.cbs:
-                cb = self.cbs.pop()
-                cb(self.result)
-
-    def __getattr__(self, funcname):
-        def callme(*args, **kwargs):
-            promise = NowPromise()
-            self.callback( lambda x: promise.set_result(getattr(x, funcname)(*args, **kwargs)) )
-            return promise
-        return callme
-
-class PromiseTreeResolver(object):
-    def __init__(self, tree):
-        self.tree = tree
-
-        if isinstance(self.tree, tuple):
-            self.tree = list(self.tree)
-
-        self.waiting = set()
-        self.fired = False
-
-    def resolve(self):
-        self.masterpromise = NowPromise()
-        self.do_resolve([], self.tree)
-        if not self.waiting and not self.fired:
-            self.masterpromise.set_result(self.tree)
-        return self.masterpromise
-
-    def fulfillPromise(self, data, path=None):
-        if path:
-            self.updateTree(path, data)
-        else:
-            self.tree = data
-        
-        self.waiting.remove(path)
-
-        if not self.waiting and not self.fired:
-            self.fired = True
-            self.masterpromise.set_result(self.tree)
-
-    def updateTree(self, origpath, data):
-        path = list(origpath)
-
-        pivot = self.tree
-        while len(path) > 1:
-            nextkey = path.pop(0)
-            if isinstance(pivot[nextkey], tuple):
-                pivot[nextkey] = list(pivot[nextkey])
-            pivot = pivot[nextkey]
-        
-        pivot[path.pop(0)] = data
-
-    def registerPromise(self, pivot, path):
-        tpath = tuple(path)
-        self.waiting.add( tpath )
-        pivot.callback( functools.partial(self.fulfillPromise, path=tpath) )
-
-    def do_resolve(self, path, pivot):
-        if isinstance(pivot, dict):
-            for key, value in pivot.items():
-                self.do_resolve(path + [key], value)
-        elif isinstance(pivot, list) or isinstance(pivot,tuple):
-            for (pos, elem) in enumerate(pivot):
-                self.do_resolve(path + [pos], elem)
-        elif isinstance(pivot, basestring):
-            pass
-        elif isinstance(pivot, int):
-            pass
-        elif isinstance(pivot, float):
-            pass
-        elif isinstance(pivot, NowPromise):
-            self.registerPromise(pivot, path)
-        elif isinstance(pivot, NowObject):
-            pass
-        elif isinstance(pivot, type(None)):
-            pass
-        elif isinstance(pivot, tuple):
-            pass
-        # elif isinstance(pivot, types.FunctionType):
-        #     pass
-        else:
-            print 'unknown element', pivot
+from nowpromise import NowPromise
+from promisetree import PromiseTreeResolver
 
 class NowObject(object):
     def __init__(self, parent=None, name=None, resolving=False, exchange=None, **kwargs):
@@ -141,7 +39,6 @@ class NowObject(object):
         
         if exchange:
             self.exchange = exchange
-            self.exchange.register(self)
 
         self.setup()
     
@@ -296,10 +193,10 @@ class NowClient(NowObject):
         return self.remote_call(pathchain, args, kwargs)
 
     def message_received(self, pathchain, serargskwargs):
-        # print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
+        print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
 
         args, kwargs = self.rebuild_args_kwargs(serargskwargs)
-        # print 'REBUILT', args, kwargs
+        print 'REBUILT', args, kwargs
 
         bar = self
         while pathchain:
@@ -308,15 +205,4 @@ class NowClient(NowObject):
             bar = getattr(bar, foo)
         
         bar(*args, **kwargs)
-
-class Exchange(object):
-    def __init__(self):
-        self.clients = {}
-    
-    def register(self, client):
-        # print 'REGISTER', client.name
-        self.clients[client.name] = client
-    
-    def send(self, pathchain, serargskwargs):
-        self.clients[ pathchain[0] ].message_received(pathchain[1:], serargskwargs)
 

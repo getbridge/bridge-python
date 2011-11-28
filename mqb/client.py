@@ -1,25 +1,23 @@
 from mqblib import MQBConnection, waitForAll
 import tornado
 
+from seria import NowObject, NowClient
+
 import json
 
 class MQBClient(MQBConnection):
     def on_ready(self, result):
         self.log('CLIENT READY', result)
-        self.get_auth_ref()
+
+        self.now = NowClient(exchange=self)
+        self.now.auth.login()
     
-    def auth_received(self, authref):
-        print 'auth ref', authref
-
-    def on_message_received(self, message):
-        print 'message received', message
-
-    def get_auth_ref(self):
-        self.send_object(target='auth', obj=self.auth_received)
-
 def main():
-    client = MQBClient()
-    client.connect()
+    mqb = MQBClient(client_id='CLIENT')
+    mqb.connect()
+
+    now = NowClient(exchange=mqb)
+    # now.auth.login()
 
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
