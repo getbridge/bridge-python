@@ -2,30 +2,43 @@ from mqblib import MQBConnection, waitForAll
 import tornado
 import json
 
-class WrapRef(object):
-    def __init__(self, owner, message):
-        self.owner = owner
-        self.target = message['from']
-        self.objid = message['ref']
-    
-    def __call__(self, obj):
-        self.owner.send_object(target=self.target, obj=obj)
+from seria import NowObject, NowClient
 
-class MQBAuthService(MQBConnection):
-    public_name = "AUTH"
+from helpers import waitForAll
+
+class MQBService(MQBConnection):
+    # public_name = "auth"
     def on_ready(self, result):
-        self.log('SERVICE READY', result)
-        self.bind_queue(queue=self.queue_name, exchange=self.DEFAULT_EXCHANGE, routing_key=self.public_name)
-        self.bind_exchange(source=self.exchange_name, destination=self.USER_EXCHANGE)
+        self.log('ON READY', result)
 
-    def on_message_received(self, message):
-        self.log('message received', message)
-        ref = WrapRef(self, message)
-        ref(self)
+        waitForAll(self.declared_auth, {
+                'declare': [self.declare_queue, [], dict(queue='auth')],
+                'bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.USER_EXCHANGE)],
+            }
+        )
+    
+    def declared_auth(self, result):
+        self.log('DECLARED AUTH', result)
+        waitForAll(self.bound, {
+            'bindq': [self.bind_queue, [], dict(queue='auth', exchange=self.DEFAULT_EXCHANGE, routing_key='auth')]
+            }
+        )
+        self.client.basic_consume(queue='auth', callback=self.on_datagram_received)
+
+    def bound(self, result):
+        self.log('BOUND READY', result)
+
+        self.send_object(target='auth', obj='hello')
+
+    def on_datagram_received(self, promise, datagram):
+        self.log('datagram received', datagram)
+
+class AuthService(NowClient):
+    pass
 
 def main():
-    auth = MQBAuthService()
-    auth.connect()
+    service = MQBService()
+    service.connect()
 
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()

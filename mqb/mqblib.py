@@ -103,7 +103,7 @@ class MQBConnection(object):
         self.log('connection lost', exception)
 
     def have_client_queue_and_exchange(self, result):
-        print result
+        print 'ALMOST LISTENING', result
         self.listen_client()
         waitForAll(self.on_ready, self.link_client())
 
@@ -123,7 +123,7 @@ class MQBConnection(object):
         return self.client.exchange_declare( exchange=exchange, type=typ, durable=False, auto_delete=False, *args, **kwargs)
 
     def declare_queue(self, queue=None, *args, **kwargs):
-        return self.client.queue_declare(queue=self.queue_name, durable=False, auto_delete=True, *args, **kwargs)
+        return self.client.queue_declare(queue=queue, durable=False, auto_delete=True, *args, **kwargs)
 
     def bind_queue(self, *args, **kwargs):
         return self.client.queue_bind(*args, **kwargs)
@@ -150,17 +150,16 @@ class MQBConnection(object):
         raise NotImplementedError
 
     def on_datagram_received(self, promise, datagram):
-        message = json.loads(datagram['body'])
-        self.on_message_received(message)
+        raise NotImplementedError
 
     def listen_client(self):
         self.client.basic_consume(queue=self.queue_name, callback=self.on_datagram_received)
 
     def link_client(self):
         return { 
-                'queue_bind': [self.bind_queue, [], dict(queue=self.queue_name, exchange=self.USER_EXCHANGE, routing_key=self.queue_name)],
-                'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)]
-               }
+            'queue_bind': [self.bind_queue, [], dict(queue=self.queue_name, exchange=self.USER_EXCHANGE, routing_key=self.queue_name)],
+            'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)]
+        }
 
 
 def main():
