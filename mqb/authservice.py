@@ -18,8 +18,11 @@ class MQBService(MQBConnection):
         self.auth = AuthService(self.now, name='auth')
 
 class AuthService(NowObject):
-    def handle_login(self):
+    def handle_login(self, username, password, callback):
         print 'LALALA'
+
+        print 'CALLBACK', callback
+        callback('FRED')
 
 def main():
     mqb = MQBService(client_id='SERVER')

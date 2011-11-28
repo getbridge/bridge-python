@@ -166,7 +166,8 @@ class MQBConnection(object):
         self.now.message_received(pathchain, serargskwargs)
 
     def send(self, pathchain, serargskwargs):
-        self.publish(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}) )
+        print 'SEND', dict(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
+        self.publish(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain[1:], 'serargskwargs': serargskwargs}) )
 
     def listen_client(self):
         self.client.basic_consume(queue=self.queue_name, callback=self.on_datagram_received)
