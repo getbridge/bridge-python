@@ -42,11 +42,11 @@ class TornadoDriver(object):
 class MQBConnection(object):
     EXCHANGE_TYPE_MAP = {
         'D': 'direct',
+        'P': 'path',
         'F': 'fanout',
         'T': 'topic',
     }
     DEFAULT_EXCHANGE = 'D_DEFAULT'
-    USER_EXCHANGE = 'D_USER'
 
     def __init__(self, **kwargs):
         self.want_register = []
@@ -99,7 +99,8 @@ class MQBConnection(object):
     def log(self, *args):
         print self.config.client_id + ': ' + ' '.join( str(x) for x in args)
 
-    def connect(self):
+    def connect(self, callback):
+        self.callback = callback
         self.client = TornadoDriver().connect(self.config, self.connection_made, self.connection_lost)
     
     def connection_made(self, promise, result):
@@ -117,10 +118,7 @@ class MQBConnection(object):
     def have_client_queue_and_exchange(self, result):
         print 'ALMOST LISTENING', result
         self.listen_client()
-        waitForAll(self.on_ready, self.link_client())
-
-    def on_ready(self, result):
-        raise NotImplementedError
+        waitForAll(lambda x: self.callback(), self.link_client())
 
     @property
     def queue_name(self):
@@ -138,6 +136,7 @@ class MQBConnection(object):
         return self.client.queue_declare(queue=queue, durable=False, auto_delete=True, *args, **kwargs)
 
     def bind_queue(self, *args, **kwargs):
+        print 'BIND QUEUE', args, kwargs
         return self.client.queue_bind(*args, **kwargs)
     
     def bind_exchange(self, *args, **kwargs):
@@ -149,7 +148,6 @@ class MQBConnection(object):
     def setup_base(self):
         return {
             'default_exchange': [self.declare_exchange, [], dict(exchange=self.DEFAULT_EXCHANGE)],
-            'user_exchange': [self.declare_exchange, [], dict(exchange=self.USER_EXCHANGE)],
         }
 
     def setup_client_queue_and_exchange(self):
@@ -163,20 +161,22 @@ class MQBConnection(object):
         packet = json.loads(datagram['body'])
         serargskwargs = packet['serargskwargs']
         pathchain = packet['pathchain']
-        self.now.message_received(pathchain, serargskwargs)
+        self.message_received(pathchain, serargskwargs)
 
     def send(self, pathchain, serargskwargs):
-        print 'SEND', dict(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
-        self.publish(exchange=self.exchange_name, routing_key=pathchain[0], body=json.dumps({'pathchain': pathchain[1:], 'serargskwargs': serargskwargs}) )
+        data = dict(exchange=self.exchange_name, routing_key= self.DEFAULT_EXCHANGE + '.' + pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
+        print 'SEND', data
+        self.publish(**data)
 
     def listen_client(self):
-        self.client.basic_consume(queue=self.queue_name, callback=self.on_datagram_received)
+        self.listen(self.queue_name)
+
+    def listen(self, queue):
+        self.client.basic_consume(queue=queue, callback=self.on_datagram_received)
 
     def link_client(self):
         return { 
-            'queue_bind': [self.bind_queue, [], dict(queue=self.queue_name, exchange=self.USER_EXCHANGE, routing_key=self.queue_name)],
             'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)],
-            'send_to_user_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.USER_EXCHANGE)]
         }
 
 

@@ -29,7 +29,7 @@ class AuthService(NowObject):
     def setup(self):
         self._chatserver = ChatServer(self, name='chat')
 
-    def handle_login(self, username, password, callback):
+    def handle_login(self, username, password, callback=None):
         print 'LOGIN', username, password
         if password == 'secret':
             result = self._chatserver
@@ -37,7 +37,8 @@ class AuthService(NowObject):
             result = None
         
         print '--- READY FOR CALLBACK ---'
-        callback('alalala')
+        if callback:
+            callback('alalala')
         return None
     
 def prnt(*args):
@@ -61,36 +62,53 @@ def test_remote():
 
     now.default.auth.login(username='enki', password='secret', callback=bar.got_result )
 
-# def test_basic():    
-#     # Root Object the client interfaces with
-#     now = NowObject()
-#     auth = AuthService(now, name='auth')
-#     public_chat = ChatServer(now, name='chat')
 
-#     # now.chat().callback(prnt)
+def test_new():    
+    # Root Object the client interfaces with
+    now = NowObject()
+    auth = AuthService(now, name='auth')
+    public_chat = ChatServer(now, name='chat')
 
-#     private_chat = now.auth.login(username='enki', password='secret')
-#     private_chat.callback(prnt)
+    now.auth().callback(prnt)
 
-#     flotype = private_chat.join_room('flotype')
-#     print 'GOT', flotype
-#     flotype.callback(prnt)
-#     flotype.send_message('WORLD')
 
-#     print '---'
-#     roominfo = private_chat.roominfo(flotype)
-#     roominfo.callback(prnt)
+def test_basic():    
+    # Root Object the client interfaces with
+    now = NowObject()
+    auth = AuthService(now, name='auth')
+    public_chat = ChatServer(now, name='chat')
 
-# def test_resolver():
-#     promise = NowPromise()
-#     tree =  {'just': {'yet': ['another', promise,] } }
-#     ptree = PromiseTreeResolver(tree)
-#     masterpromise = ptree.resolve()
-#     masterpromise.callback(prnt)
-#     promise.set_result('foo')
+    # now.chat().callback(prnt)
+
+    private_chat = now.auth.login(username='enki', password='secret')
+    private_chat.callback(prnt)
+
+    flotype = private_chat.join_room('flotype')
+    print 'GOT', flotype
+    flotype.callback(prnt)
+    flotype.send_message('WORLD')
+
+    print '---'
+    roominfo = private_chat.roominfo(flotype)
+    roominfo.callback(prnt)
+
+
+
+
+
+
+
+def test_resolver():
+    promise = NowPromise()
+    tree =  {'just': {'yet': ['another', promise,] } }
+    ptree = PromiseTreeResolver(tree)
+    masterpromise = ptree.resolve()
+    masterpromise.callback(prnt)
+    promise.set_result('foo')
 
 
 def main():
+    # test_new()
     # test_basic()
     # test_resolver()
     test_remote()
