@@ -47,11 +47,11 @@ class NowObject(object):
         return cb(self)
 
     def register(self, other):
-        print 'REGISTER CHILD', self, other.name
+        # print 'REGISTER CHILD', self, other.name
         self.children[ other.name ] = other
 
     def __setitem__(self, key, obj):
-        print 'SETITEM', key, obj
+        # print 'SETITEM', key, obj
         true_self = self.find_original()
         obj(parent=true_self, name=key)
 
@@ -182,7 +182,7 @@ class NowObject(object):
         
         if result[0] == 'now':
             need_add = '.'.join(result[1][:-1])
-            print 'ADD LINK FOR', need_add
+            # print 'ADD LINK FOR', need_add
             add_links_set.add(need_add)
 
         return result
@@ -216,7 +216,7 @@ class NowObject(object):
         return args, kwargs
 
     def message_received(self, pathchain, serargskwargs):
-        print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
+        # print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
 
         args, kwargs = self.rebuild_args_kwargs(serargskwargs)
 
@@ -228,7 +228,7 @@ class NowObject(object):
             foo = pathchain.pop(0)
             bar = getattr(bar, foo)
         
-        print 'REBUILT', bar, args, kwargs
+        # print 'REBUILT', bar, args, kwargs
         bar(*args, **kwargs)
 
 
@@ -241,7 +241,6 @@ class CallProxy:
     def reflect(self):
         self.fired = True
         for x in self.queue:
-            print 'REFLECT', x
             getattr(self.target, x[0])(*x[1], **x[2])
 
     def __getattr__(self, key):
@@ -275,12 +274,11 @@ class NowClient(NowObject):
 
     def _join_workerpool(self, name, callback=lambda x: x):
         def got_queue(promise, result):
-            print 'GOT QUEUE', promise, result
+            # print 'GOT QUEUE', promise, result
             self.mqb.listen(queue=name)
             self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=name, callback=lambda x,y: callback(y) )
         
         self.mqb.declare_queue(queue=name, callback=got_queue)
-        return 'END'
 
     def _leave_workerpool(self, name):
         pass
@@ -299,10 +297,10 @@ class NowClient(NowObject):
         self.mqb.reflect()
     
     def not_found(self, pathchain, args, kwargs):
-        print 'NOT FOUND', self, pathchain
+        print 'NOT FOUND', self, pathchain, 'CALLING REMOTE'
         serargskwargs, add_links = self.serialize_args_kwargs(args, kwargs)
 
-        print 'ADD LINKS HEADERS REQUESTED', add_links
+        # print 'ADD LINKS HEADERS REQUESTED', add_links
 
         # def did_send(promise, result):
         #     print 'SENT', promise, result

@@ -117,7 +117,7 @@ class MQBConnection(object):
         self.log('connection lost', exception)
 
     def have_client_queue_and_exchange(self, result):
-        print 'ALMOST LISTENING', result
+        # print 'ALMOST LISTENING', result
         self.listen_client()
         waitForAll(lambda x: self.callback(), self.link_client())
 
@@ -137,7 +137,6 @@ class MQBConnection(object):
         return self.client.queue_declare(queue=queue, durable=False, auto_delete=True, *args, **kwargs)
 
     def bind_queue(self, *args, **kwargs):
-        print 'BIND QUEUE', args, kwargs
         return self.client.queue_bind(*args, **kwargs)
     
     def bind_exchange(self, *args, **kwargs):
@@ -175,7 +174,7 @@ class MQBConnection(object):
 
     def send(self, routing_key, pathchain, serargskwargs, add_links, callback=None):
         data = dict(exchange=self.exchange_name, routing_key=routing_key, body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
-        print 'SEND', data
+        # print 'SEND', data
         if callback:
             data['callback'] = callback
         data['headers'] = dict((('link_%d' % (pos,)), x) for (pos, x) in enumerate(add_links) )
