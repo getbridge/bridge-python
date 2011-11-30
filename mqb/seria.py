@@ -17,6 +17,8 @@ class NowObject(object):
 
         self.is_original = False
 
+        self.is_namespaced = True
+
         self.parent = parent
 
         if not self.parent:
@@ -25,6 +27,7 @@ class NowObject(object):
             self.public_name = uuid.uuid4().hex
             self.is_original = True
         else:
+            self.is_namespaced = parent.is_namespaced
             self.name = self.public_name = name
             if not self.name:
                 self.name = self.public_name = uuid.uuid4().hex
@@ -81,7 +84,7 @@ class NowObject(object):
         return x
 
     def __repr__(self):
-        return '<' + self.__class__.__name__ + ' Path: ' + '.'.join(self.full_path()) + '>'
+        return '<' + self.__class__.__name__ + ' Path: ' + '.'.join(self.full_path()) + ' '  + repr(self.is_namespaced)  + '>'
     
     def __call__(self, *args, **kwargs):
         promise = NowPromise()
@@ -97,7 +100,7 @@ class NowObject(object):
         args = resolved_args[0]
         kwargs = resolved_args[1]
 
-        retval = self.prepcall([], *args, **kwargs)
+        retval = self.prepcall([], self.is_namespaced, *args, **kwargs)
         retval_resolver = PromiseTreeResolver(retval)
         retval_promise = retval_resolver.resolve()
         
@@ -117,18 +120,18 @@ class NowObject(object):
         else:
             return self
 
-    def prepcall(self, pathchain, *args, **kwargs):
+    def prepcall(self, pathchain, is_namespaced, *args, **kwargs):
         if not self.is_original:
             pathchain.insert(0, self.name)
-            return self.parent.prepcall(pathchain, *args, **kwargs)
+            return self.parent.prepcall(pathchain, is_namespaced, *args, **kwargs)
         else:   
-            return self.call(pathchain, *args, **kwargs)
+            return self.call(pathchain, is_namespaced, *args, **kwargs)
 
     def handle_end(self, *args, **kwargs):
         print 'END OF PATHCHAIN', self, args, kwargs
         return self
 
-    def call(self, pathchain, *args, **kwargs):
+    def call(self, pathchain, is_namespaced, *args, **kwargs):
         pathchain = list(pathchain)
 
         if not pathchain:
@@ -138,7 +141,7 @@ class NowObject(object):
 
         child = self.children.get(next, None)
         if child:
-            return child.call(pathchain, *args, **kwargs)
+            return child.call(pathchain, is_namespaced, *args, **kwargs)
 
         handler = getattr(self, 'handle_' + next)
         if handler:
@@ -147,9 +150,9 @@ class NowObject(object):
             else:
                 raise AttributeError("handler with remaining path %s" % (pathchain))
         
-        return self.not_found([next] + pathchain, args, kwargs)
+        return self.not_found([next] + pathchain, is_namespaced, args, kwargs)
     
-    def not_found(self, pathchain, args, kwargs):
+    def not_found(self, pathchain, is_namespaced, args, kwargs):
         raise AttributeError( pathchain[0] )
     
     def serialize_args_kwargs(self, args, kwargs):
@@ -172,16 +175,16 @@ class NowObject(object):
         elif isinstance(pivot, types.FunctionType):
             wrap = NowObject(self._local)
             wrap.handle_end = pivot
-            result = ('now', [x for x in wrap.full_path() if x])
+            result = ('now', {'ref': [x for x in wrap.full_path() if x]})
         elif isinstance(pivot, NowObject):
-            result = ('now', [x for x in pivot.full_path() if x])
+            result = ('now', {'ref': [x for x in pivot.full_path() if x]})
         elif isinstance(pivot, type(None)):
             result = ('none', None)
         else:
             raise Exception("Unknown %s" % (type(pivot)))
         
         if result[0] == 'now':
-            need_add = '.'.join(result[1][:-1])
+            need_add = result[1]['ref'][0]
             # print 'ADD LINK FOR', need_add
             add_links_set.add(need_add)
 
@@ -199,9 +202,12 @@ class NowObject(object):
             result = float(pivot)
         elif typ == 'now':
             bar = self.root
+            pivot = pivot['ref']
             while pivot:
                 foo = pivot.pop(0)
                 bar = getattr(bar,foo)
+            bar.is_namespaced = False
+            # print 'BAR', bar.is_namespaced
             result = bar
         elif typ == 'none':
             result = None
@@ -216,7 +222,7 @@ class NowObject(object):
         return args, kwargs
 
     def message_received(self, pathchain, serargskwargs):
-        # print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
+        print 'MESSAGE RECEIVED', self, pathchain, serargskwargs
 
         args, kwargs = self.rebuild_args_kwargs(serargskwargs)
 
@@ -228,6 +234,7 @@ class NowObject(object):
             foo = pathchain.pop(0)
             bar = getattr(bar, foo)
         
+        bar.is_namespaced = False
         # print 'REBUILT', bar, args, kwargs
         bar(*args, **kwargs)
 
@@ -266,19 +273,20 @@ class NowClient(NowObject):
 
         self.mqb = CallProxy(self.mqbconn)
     
-    def _join_channel(self, name):
+    def _subscribe_channel(self, name):
         pass
 
-    def _leave_channel(self, name):
+    def _unsubscribe_channel(self, name):
         pass
 
     def _join_workerpool(self, name, callback=lambda x: x):
+        pool_queue_name = 'W_' + name
         def got_queue(promise, result):
             # print 'GOT QUEUE', promise, result
-            self.mqb.listen(queue=name)
-            self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=name, callback=lambda x,y: callback(y) )
+            self.mqb.listen(queue=pool_queue_name)
+            self.mqb.bind_queue(queue=pool_queue_name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key='N.' + name, callback=lambda x,y: callback(y) )
         
-        self.mqb.declare_queue(queue=name, callback=got_queue)
+        self.mqb.declare_queue(queue=pool_queue_name, callback=got_queue)
 
     def _leave_workerpool(self, name):
         pass
@@ -286,18 +294,20 @@ class NowClient(NowObject):
     @property
     def system(self):
         return AttrDict({
-            'join_channel': self._join_channel,
-            'leave_channel': self._leave_channel,
+            'subscribe_channel': self._subscribe_channel,
+            'unsubscribe_channel': self._unsubscribe_channel,
             'join_workerpool': self._join_workerpool,
             'leave_workerpool': self._leave_workerpool,
+            # 'connect_namespace': self._connect_namespace,
+            # 'disconnect_namespace': self._disconnect_namespace,
         })
 
     def connection_made(self):
         print 'CONNECTION MADE'
         self.mqb.reflect()
     
-    def not_found(self, pathchain, args, kwargs):
-        print 'NOT FOUND', self, pathchain, 'CALLING REMOTE'
+    def not_found(self, pathchain, is_namespaced, args, kwargs):
+        print 'NOT FOUND', self, pathchain, is_namespaced, 'CALLING REMOTE'
         serargskwargs, add_links = self.serialize_args_kwargs(args, kwargs)
 
         # print 'ADD LINKS HEADERS REQUESTED', add_links
@@ -306,4 +316,4 @@ class NowClient(NowObject):
         #     print 'SENT', promise, result
         did_send = None
 
-        self.mqb.send( '.'.join((pathchain)[:-1]), pathchain, serargskwargs, add_links=add_links, callback=did_send)
+        self.mqb.send( pathchain[0], is_namespaced, pathchain, serargskwargs, add_links=add_links, callback=did_send)

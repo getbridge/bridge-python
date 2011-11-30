@@ -4,9 +4,13 @@ import types
 
 class AuthService(NowObject):
     def handle_login(self, username, password, callback):
-        print '\n\n\nCALLBACK', callback
+        print '\n\n\nLOGIN CALLBACK', callback
         if callback:
-            callback( 'ROOT:' + self.root.public_name )
+            callback( Private(self) )
+
+class Private(NowObject):
+    def handle_detonate(self):
+        print 'DETONATING'
 
 def main():
     now = NowClient()
@@ -14,11 +18,13 @@ def main():
     now.local['auth'] = AuthService
 
     def got_login(result):
-        print 'GOT LOGIN', result
+        print 'CALLING DETONATE', result
+        result.detonate()
 
     def joined_workerpool(result):
         print 'JOINED', result
         now.auth.login('enki', 'secret', got_login)
+    
     now.system.join_workerpool('auth', joined_workerpool)
 
     ioloop = tornado.ioloop.IOLoop.instance()

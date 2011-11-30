@@ -67,35 +67,35 @@ class MQBConnection(object):
 
         assert self.config.client_id
     
-    def register(self, name, callback=None):
-        self.want_register.append( (name, callback) )
-        if self.connected:
-            self.empty_register()
+    # def register(self, name, callback=None):
+    #     self.want_register.append( (name, callback) )
+    #     if self.connected:
+    #         self.empty_register()
 
-    def empty_register(self):
-        while self.want_register:
-            self.register_1( *self.want_register.pop(0) )
+    # def empty_register(self):
+    #     while self.want_register:
+    #         self.register_1( *self.want_register.pop(0) )
 
-    def register_1(self, register_name, callback):
-        waitForAll(functools.partial(self.register_2, register_name, callback), {
-                'declare': [self.declare_queue, [], dict(queue=register_name)],
-            }
-        )
+    # def register_1(self, register_name, callback):
+    #     waitForAll(functools.partial(self.register_2, register_name, callback), {
+    #             'declare': [self.declare_queue, [], dict(queue=register_name)],
+    #         }
+    #     )
     
-    def register_2(self, register_name, callback, result):
-        self.listen(queue=register_name)
-        waitForAll(functools.partial(self.register_3, register_name, callback), {
-            'bindq': [self.bind_queue, [], dict(queue=register_name, exchange=self.DEFAULT_EXCHANGE, routing_key=register_name)]
-            }
-        )
+    # def register_2(self, register_name, callback, result):
+    #     self.listen(queue=register_name)
+    #     waitForAll(functools.partial(self.register_3, register_name, callback), {
+    #         'bindq': [self.bind_queue, [], dict(queue=register_name, exchange=self.DEFAULT_EXCHANGE, routing_key=register_name)]
+    #         }
+    #     )
 
-    def register_3(self, register_name, callback, result):
-        self.log('BOUND READY', result)
+    # def register_3(self, register_name, callback, result):
+    #     self.log('BOUND READY', result)
 
-        # self.publish(exchange=self.exchange_name, body='hello', routing_key='auth')
+    #     # self.publish(exchange=self.exchange_name, body='hello', routing_key='auth')
 
-        if callback:
-            callback(register_name)
+    #     if callback:
+    #         callback(register_name)
 
     def log(self, *args):
         print self.config.client_id + ': ' + ' '.join( str(x) for x in args)
@@ -110,7 +110,6 @@ class MQBConnection(object):
         self.connected = True
 
         d = self.setup_base()
-        d.update( self.setup_client_queue_and_exchange() )
         waitForAll(self.have_client_queue_and_exchange, d )
 
     def connection_lost(self, exception):
@@ -123,11 +122,11 @@ class MQBConnection(object):
 
     @property
     def queue_name(self):
-        return self.config.client_id
+        return 'C_' + self.config.client_id
 
     @property
     def exchange_name(self):
-        return 'F_' + self.config.client_id
+        return 'T_' + self.config.client_id
 
     def declare_exchange(self, exchange=None, *args, **kwargs):
         typ = self.EXCHANGE_TYPE_MAP[ exchange[0] ]
@@ -137,9 +136,11 @@ class MQBConnection(object):
         return self.client.queue_declare(queue=queue, durable=False, auto_delete=True, *args, **kwargs)
 
     def bind_queue(self, *args, **kwargs):
+        print 'BINDQUEUE', args, kwargs
         return self.client.queue_bind(*args, **kwargs)
     
     def bind_exchange(self, *args, **kwargs):
+        print 'BINDEXCHANGE', args, kwargs
         return self.client.exchange_bind(*args, **kwargs)
 
     def publish(self, *args, **kwargs):
@@ -148,10 +149,6 @@ class MQBConnection(object):
     def setup_base(self):
         return {
             'default_exchange': [self.declare_exchange, [], dict(exchange=self.DEFAULT_EXCHANGE)],
-        }
-
-    def setup_client_queue_and_exchange(self):
-        return {
             'client_queue': [self.declare_queue, [], dict(queue=self.queue_name)],
             'client_exchange': [self.declare_exchange, [], dict(exchange=self.exchange_name)],
         }
@@ -162,7 +159,7 @@ class MQBConnection(object):
         for key, value in datagram['headers'].items():
             if not key.startswith('link_'):
                 continue
-            all_links.append([self.bind_queue, [], dict(exchange=self.exchange_name, queue=value, routing_key=value)])
+            all_links.append([self.bind_queue, [], dict(exchange=self.exchange_name, queue='C_' + value, routing_key=value)])
 
         waitForAll( functools.partial(self.links_made, datagram), all_links)
     
@@ -172,9 +169,12 @@ class MQBConnection(object):
         pathchain = packet['pathchain']
         self.message_received(pathchain, serargskwargs)
 
-    def send(self, routing_key, pathchain, serargskwargs, add_links, callback=None):
+    def send(self, routing_key, is_namespaced, pathchain, serargskwargs, add_links, callback=None):
+        # print 'IS NAMESPACED', is_namespaced, pathchain
+        if is_namespaced:
+            routing_key = 'N.' + routing_key
         data = dict(exchange=self.exchange_name, routing_key=routing_key, body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
-        # print 'SEND', data
+        print 'SEND', data
         if callback:
             data['callback'] = callback
         data['headers'] = dict((('link_%d' % (pos,)), x) for (pos, x) in enumerate(add_links) )
@@ -188,7 +188,7 @@ class MQBConnection(object):
 
     def link_client(self):
         return { 
-            'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE)],
+            'exchange_bind': [self.bind_exchange, [], dict(source=self.exchange_name, destination=self.DEFAULT_EXCHANGE, routing_key='N.*')],
         }
 
 
