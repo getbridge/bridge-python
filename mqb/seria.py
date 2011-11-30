@@ -70,6 +70,16 @@ class NowObject(object):
         # fp = '.'.join(x)
         return x
 
+    def public_path(self):
+        x = []
+        y = self
+        while y:
+            x.insert(0, y.public_name )
+            y = y.parent
+        
+        # fp = '.'.join(x)
+        return x
+
     def __repr__(self):
         return '<' + self.__class__.__name__ + ' Path: ' + '.'.join(self.full_path()) + '>'
     
@@ -143,31 +153,38 @@ class NowObject(object):
         raise AttributeError( pathchain[0] )
     
     def serialize_args_kwargs(self, args, kwargs):
-        serialized_args = self.traverse(args)
-        serialized_kwargs = self.traverse(kwargs)
-        return serialized_args, serialized_kwargs
+        add_links = set()
+        serialized_args= self.traverse(args, add_links)
+        serialized_kwargs = self.traverse(kwargs, add_links)
+        serargskwargs = (serialized_args, serialized_kwargs)
+        return serargskwargs, add_links
 
-    def traverse(self, pivot):
+    def traverse(self, pivot, add_links_set):
         # print 'WHUT', pivot, type(pivot)
         if type(pivot) in (tuple, list):
-            result = ('list', [self.traverse(elem) for elem in pivot])
+            result = ('list', [self.traverse(elem, add_links_set) for elem in pivot])
         elif isinstance(pivot, dict):
-            result = ('dict', dict([(key, self.traverse(value)) for key, value in pivot.items()]))
+            result = ('dict', dict([(key, self.traverse(value, add_links_set)) for key, value in pivot.items()]))
         elif type(pivot) in (str, unicode, basestring):
             result = ('str', pivot)
         elif type(pivot) in (int, float):
             result = ('float', pivot)
-        # elif isinstance(pivot, types.FunctionType):
-        #     wrap = NowObject(self)
-        #     wrap.handle_end = pivot
-        #     result = ('now', wrap.full_path())
+        elif isinstance(pivot, types.FunctionType):
+            wrap = NowObject(self._local)
+            wrap.handle_end = pivot
+            result = ('now', [x for x in wrap.full_path() if x])
         elif isinstance(pivot, NowObject):
-            result = ('now', pivot.full_path())
+            result = ('now', [x for x in pivot.full_path() if x])
         elif isinstance(pivot, type(None)):
             result = ('none', None)
         else:
             raise Exception("Unknown %s" % (type(pivot)))
         
+        if result[0] == 'now':
+            need_add = '.'.join(result[1][:-1])
+            print 'ADD LINK FOR', need_add
+            add_links_set.add(need_add)
+
         return result
 
     def retraverse(self, tup):
@@ -204,7 +221,8 @@ class NowObject(object):
         args, kwargs = self.rebuild_args_kwargs(serargskwargs)
 
         bar = self
-        pathchain = ['local'] + pathchain
+        if pathchain[0] != self.public_name:
+            pathchain = [self.public_name] + pathchain
         while pathchain:
             # print 'DEEP', bar
             foo = pathchain.pop(0)
@@ -237,10 +255,13 @@ class CallProxy:
         return foo
 
 class NowClient(NowObject):
-    def setup(self):
-        self._local = NowObject(parent=self, name='local')
+    def __init__(self, *args, **kwargs):
+        NowObject.__init__(self)
 
-        self.mqbconn = MQBConnection(client_id=self.public_name)
+        self._local = NowObject(parent=self, name=self.public_name)
+        self.children['local'] = self._local
+
+        self.mqbconn = MQBConnection(client_id=self.public_name, *args, **kwargs)
         self.mqbconn.connect(self.connection_made)
         self.mqbconn.message_received = self.message_received
 
@@ -256,7 +277,7 @@ class NowClient(NowObject):
         def got_queue(promise, result):
             print 'GOT QUEUE', promise, result
             self.mqb.listen(queue=name)
-            self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=self.mqb.DEFAULT_EXCHANGE + '.' + name, callback=callback)
+            self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=name, callback=callback)
         
         self.mqb.declare_queue(queue=name, callback=got_queue)
         return 'END'
@@ -278,6 +299,13 @@ class NowClient(NowObject):
         self.mqb.reflect()
     
     def not_found(self, pathchain, args, kwargs):
-        serargskwargs = self.serialize_args_kwargs(args, kwargs)
+        print 'NOT FOUND', self, pathchain
+        serargskwargs, add_links = self.serialize_args_kwargs(args, kwargs)
 
-        self.mqb.send(pathchain, serargskwargs)
+        print 'ADD LINKS HEADERS REQUESTED', add_links
+
+        # def did_send(promise, result):
+        #     print 'SENT', promise, result
+        did_send = None
+
+        self.mqb.send( '.'.join((pathchain)[:-1]), pathchain, serargskwargs, add_links=add_links, callback=did_send)

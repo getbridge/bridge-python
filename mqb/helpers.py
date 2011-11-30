@@ -15,7 +15,14 @@ def waitForAll(callback, tasks):
         # print 'retfun', len(completed), len(tasks), key, retfun, args
         if len(completed) == len(tasks):
             callback(completed)
+    
+    if not tasks:
+        callback(completed)
 
-    for key, task in tasks.iteritems():
+    if isinstance(tasks, dict):
+        for key, task in tasks.iteritems():
         # print 'calling key', key, task
-        task[0](callback=functools.partial(retfun, key), *task[1], **task[2])
+            task[0](callback=functools.partial(retfun, key), *task[1], **task[2])
+    else:
+        for key, task in enumerate(tasks):
+            task[0](callback=functools.partial(retfun, key), *task[1], **task[2])

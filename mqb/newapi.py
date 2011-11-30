@@ -4,20 +4,21 @@ import types
 
 class AuthService(NowObject):
     def handle_login(self, username, password, callback):
-        print 'LALALA'
-
-        print 'CALLBACK', callback
+        print '\n\n\nCALLBACK', callback
         if callback:
-            callback('FRED')
+            callback( 'ROOT:' + self.root.public_name )
 
 def main():
     now = NowClient()
 
     now.local['auth'] = AuthService
 
+    def got_login(result):
+        print 'GOT LOGIN', result
+
     def joined_workerpool(promise, result):
-        print 'JOINED', promise, result
-        now.auth.login('enki', 'secret', None)
+        print 'JOINED', promise, result, now.public_name
+        now.auth.login('enki', 'secret', got_login)
     now.system.join_workerpool('auth', joined_workerpool)
 
     ioloop = tornado.ioloop.IOLoop.instance()

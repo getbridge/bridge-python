@@ -1,4 +1,5 @@
 import puka
+import uuid
 import traceback
 import tornado.ioloop
 
@@ -82,7 +83,7 @@ class MQBConnection(object):
         )
     
     def register_2(self, register_name, callback, result):
-        self.client.basic_consume(queue=register_name, callback=self.on_datagram_received)
+        self.listen(queue=register_name)
         waitForAll(functools.partial(self.register_3, register_name, callback), {
             'bindq': [self.bind_queue, [], dict(queue=register_name, exchange=self.DEFAULT_EXCHANGE, routing_key=register_name)]
             }
@@ -157,22 +158,35 @@ class MQBConnection(object):
         }
     
     def on_datagram_received(self, promise, datagram):
-        self.log('datagram received', datagram)
+        print 'datagram received', datagram
+        all_links = []
+        for key, value in datagram['headers'].items():
+            if not key.startswith('link_'):
+                continue
+            all_links.append([self.bind_queue, [], dict(exchange=self.exchange_name, queue=value, routing_key=value)])
+
+        waitForAll( functools.partial(self.links_made, datagram), all_links)
+    
+    def links_made(self, datagram, *args, **kwargs):
+        print 'LINKS MADE', datagram, args, kwargs
         packet = json.loads(datagram['body'])
         serargskwargs = packet['serargskwargs']
         pathchain = packet['pathchain']
         self.message_received(pathchain, serargskwargs)
 
-    def send(self, pathchain, serargskwargs):
-        data = dict(exchange=self.exchange_name, routing_key= self.DEFAULT_EXCHANGE + '.' + pathchain[0], body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
+    def send(self, routing_key, pathchain, serargskwargs, add_links, callback=None):
+        data = dict(exchange=self.exchange_name, routing_key=routing_key, body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
         print 'SEND', data
-        self.publish(**data)
+        if callback:
+            data['callback'] = callback
+        data['headers'] = dict((('link_%d' % (pos,)), x) for (pos, x) in enumerate(add_links) )
+        return self.publish(**data)
 
     def listen_client(self):
         self.listen(self.queue_name)
 
     def listen(self, queue):
-        self.client.basic_consume(queue=queue, callback=self.on_datagram_received)
+        self.client.basic_consume(queue=queue, callback=self.on_datagram_received, ) #consumer_tag=self.queue_name + ':' + uuid.uuid4().hex )
 
     def link_client(self):
         return { 

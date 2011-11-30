@@ -1,4 +1,5 @@
 from nowpromise import NowPromise
+import types
 
 class PromiseTreeResolver(object):
     def __init__(self, tree):
@@ -68,7 +69,7 @@ class PromiseTreeResolver(object):
             pass
         elif isinstance(pivot, tuple):
             pass
-        # elif isinstance(pivot, types.FunctionType):
-        #     pass
+        elif isinstance(pivot, types.FunctionType):
+            pass
         else:
             print 'unknown element', pivot
