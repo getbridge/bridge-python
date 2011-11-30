@@ -16,8 +16,8 @@ def main():
     def got_login(result):
         print 'GOT LOGIN', result
 
-    def joined_workerpool(promise, result):
-        print 'JOINED', promise, result, now.public_name
+    def joined_workerpool(result):
+        print 'JOINED', result
         now.auth.login('enki', 'secret', got_login)
     now.system.join_workerpool('auth', joined_workerpool)
 

@@ -277,7 +277,7 @@ class NowClient(NowObject):
         def got_queue(promise, result):
             print 'GOT QUEUE', promise, result
             self.mqb.listen(queue=name)
-            self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=name, callback=callback)
+            self.mqb.bind_queue(queue=name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key=name, callback=lambda x,y: callback(y) )
         
         self.mqb.declare_queue(queue=name, callback=got_queue)
         return 'END'

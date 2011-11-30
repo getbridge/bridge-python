@@ -168,7 +168,6 @@ class MQBConnection(object):
         waitForAll( functools.partial(self.links_made, datagram), all_links)
     
     def links_made(self, datagram, *args, **kwargs):
-        print 'LINKS MADE', datagram, args, kwargs
         packet = json.loads(datagram['body'])
         serargskwargs = packet['serargskwargs']
         pathchain = packet['pathchain']
