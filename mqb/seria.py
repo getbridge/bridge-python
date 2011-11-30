@@ -284,7 +284,7 @@ class NowClient(NowObject):
         def got_queue(promise, result):
             # print 'GOT QUEUE', promise, result
             self.mqb.listen(queue=pool_queue_name)
-            self.mqb.bind_queue(queue=pool_queue_name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key='N.' + name, callback=lambda x,y: callback(y) )
+            self.mqb.bind_queue(queue=pool_queue_name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key='N.' + name, callback=lambda x,y: callback(name) )
         
         self.mqb.declare_queue(queue=pool_queue_name, callback=got_queue)
 
@@ -312,8 +312,8 @@ class NowClient(NowObject):
 
         # print 'ADD LINKS HEADERS REQUESTED', add_links
 
-        # def did_send(promise, result):
-        #     print 'SENT', promise, result
-        did_send = None
+        def did_send(promise, result):
+            print 'SENT', promise, result
+        # did_send = None
 
         self.mqb.send( pathchain[0], is_namespaced, pathchain, serargskwargs, add_links=add_links, callback=did_send)

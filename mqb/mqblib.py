@@ -14,17 +14,18 @@ class TornadoDriver(object):
         self.client.connect(callback=open_callback)
         self.close_callback = close_callback
 
-        ioloop.add_handler(self.client.fileno(), self.ioloop_triggered, 0)
-        self.update_conn()
+        ioloop.add_handler(self.client.fileno(), self.ioloop_triggered, ioloop.READ|ioloop.WRITE)
+        self.client.run_any_callbacks()
         return self.client
 
     def ioloop_triggered(self, fd, events):
         ioloop = tornado.ioloop.IOLoop.instance()
+        self.client.run_any_callbacks()
         try:
-            if events & ioloop.READ:
-                self.client.on_read()
             if events & ioloop.WRITE:
                 self.client.on_write()
+            if events & ioloop.READ:
+                self.client.on_read()
             self.update_conn()
         except Exception, e:
             traceback.print_exc()
@@ -39,6 +40,12 @@ class TornadoDriver(object):
             state |= ioloop.WRITE
         
         ioloop.update_handler(self.client.fileno(), state)
+
+    def __getattr__(self, key):
+        def fun(*args, **kwargs):
+            getattr(self.client, key)(*args, **kwargs)
+            self.update_conn()
+        return fun
 
 class MQBConnection(object):
     EXCHANGE_TYPE_MAP = {
@@ -102,7 +109,8 @@ class MQBConnection(object):
 
     def connect(self, callback):
         self.callback = callback
-        self.client = TornadoDriver().connect(self.config, self.connection_made, self.connection_lost)
+        self.client = TornadoDriver()
+        self.client.connect(self.config, self.connection_made, self.connection_lost)
     
     def connection_made(self, promise, result):
         # self.log('Connected to %s' %(result,))
@@ -133,6 +141,7 @@ class MQBConnection(object):
         return self.client.exchange_declare( exchange=exchange, type=typ, durable=False, auto_delete=False, *args, **kwargs)
 
     def declare_queue(self, queue=None, *args, **kwargs):
+        print "DECLAREQUEUE", queue, args, kwargs
         return self.client.queue_declare(queue=queue, durable=False, auto_delete=True, *args, **kwargs)
 
     def bind_queue(self, *args, **kwargs):
@@ -164,6 +173,7 @@ class MQBConnection(object):
         waitForAll( functools.partial(self.links_made, datagram), all_links)
     
     def links_made(self, datagram, *args, **kwargs):
+        print 'LINKS MADE', args, kwargs
         packet = json.loads(datagram['body'])
         serargskwargs = packet['serargskwargs']
         pathchain = packet['pathchain']
@@ -174,16 +184,17 @@ class MQBConnection(object):
         if is_namespaced:
             routing_key = 'N.' + routing_key
         data = dict(exchange=self.exchange_name, routing_key=routing_key, body=json.dumps({'pathchain': pathchain, 'serargskwargs': serargskwargs}))
-        print 'SEND', data
         if callback:
             data['callback'] = callback
         data['headers'] = dict((('link_%d' % (pos,)), x) for (pos, x) in enumerate(add_links) )
+        print 'SEND', data
         return self.publish(**data)
 
     def listen_client(self):
         self.listen(self.queue_name)
 
     def listen(self, queue):
+        print 'LISTEN', queue
         self.client.basic_consume(queue=queue, callback=self.on_datagram_received, ) #consumer_tag=self.queue_name + ':' + uuid.uuid4().hex )
 
     def link_client(self):
