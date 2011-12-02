@@ -11,7 +11,10 @@ class WebPullService(NowObject):
                     url=url,
                   )
         http_client = httpclient.AsyncHTTPClient()
-        http_client.fetch(request, lambda x: x and callback(x.body))
+        def got_result(result ):
+            print result
+            result and callback and callback(x.body)
+        http_client.fetch(request, got_result)
 
 def main():
     now = NowClient()
