@@ -7,8 +7,8 @@ def prnt(x):
     print 'REMOTE SAYS', x
 
 class WebPullService(NowObject):
-    def handle_fetch_url(self, url, callback):
-        print 'FETCH', url, callback
+    def handle_fetch_url(self, url):
+        # print 'FETCH', url, callback
 
         request = httpclient.HTTPRequest(
                     url=url,
@@ -18,7 +18,8 @@ class WebPullService(NowObject):
             print result
             result and callback and callback(result.body)
         # http_client.fetch(request, got_result)
-        callback( 'HOWDY', prnt )
+        # callback( 'HOWDY', prnt )
+        print 'HELLO', url
 
 def main():
     now = NowClient()

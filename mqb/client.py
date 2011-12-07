@@ -8,7 +8,8 @@ def main():
     def got_data(data):
         print 'GOT DATA', data
 
-    now.webpull.fetch_url(url="http://xkcd.com/", callback=got_data)
+    # now.webpull.fetch_url(url="http://xkcd.com/", callback=got_data)
+    now.webpull.fetch_url(url="http://xkcd.com/")
 
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
