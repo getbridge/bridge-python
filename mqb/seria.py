@@ -157,8 +157,8 @@ class NowObject(object):
     
     def serialize_args_kwargs(self, args, kwargs):
         add_links = set()
-        serialized_args= self.traverse(args, add_links)
-        serialized_kwargs = self.traverse(kwargs, add_links)
+        serialized_args= self.traverse(args, add_links)[1]
+        serialized_kwargs = self.traverse(kwargs, add_links)[1]
         serargskwargs = (serialized_args, serialized_kwargs)
         return serargskwargs, add_links
 
@@ -217,8 +217,8 @@ class NowObject(object):
         return result
 
     def rebuild_args_kwargs(self, serargskwargs):
-        args = self.retraverse(serargskwargs[0])
-        kwargs = self.retraverse(serargskwargs[1])
+        args = self.retraverse( ["list", serargskwargs[0] ] )
+        kwargs = self.retraverse( ["dict", serargskwargs[1] ] )
         return args, kwargs
 
     def message_received(self, pathchain, serargskwargs):
