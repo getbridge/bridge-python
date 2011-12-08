@@ -8,11 +8,15 @@ def prnt(x):
 def main():
     now = NowClient()
     
-    def got_data(data):
-        print 'GOT DATA', data
+    def got_resized(file):
+        print 'RESIZED', file
+        file.get_localpath(prnt)
 
-    now.webpull.fetch_url(url="http://xkcd.com/") #, callback=got_data)
-    #now.hello("http://xkcd.com/", prnt)
+    def got_file(file):
+        print 'GOT FILE', file
+        now.resize.resize(file, 25, 25, got_resized)
+
+    now.webpull.fetch_url("http://flotype.com/images/shipyard.png", got_file)
 
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
