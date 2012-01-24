@@ -23,7 +23,7 @@ class PromiseTreeResolver(object):
             self.updateTree(path, data)
         else:
             self.tree = data
-        
+
         self.waiting.remove(path)
 
         if not self.waiting and not self.fired:
@@ -39,7 +39,7 @@ class PromiseTreeResolver(object):
             if isinstance(pivot[nextkey], tuple):
                 pivot[nextkey] = list(pivot[nextkey])
             pivot = pivot[nextkey]
-        
+
         pivot[path.pop(0)] = data
 
     def registerPromise(self, pivot, path):

@@ -3,17 +3,17 @@ from seria import NowObject, NowClient
 class Exchange(object):
     def __init__(self):
         self.clients = {}
-    
+
     def register(self, client):
         # print 'REGISTER', client.name
         self.clients[client.name] = client
-    
+
     def send(self, pathchain, serargskwargs):
         self.clients[ pathchain[0] ].message_received(pathchain[1:], serargskwargs)
 
 class ChatRoom(NowObject):
     def send_message(self, message):
-        print 'Hello', message 
+        print 'Hello', message
 
 class ChatServer(NowObject):
     def join_room(self, room_name):
@@ -35,12 +35,12 @@ class AuthService(NowObject):
             result = self._chatserver
         else:
             result = None
-        
+
         print '--- READY FOR CALLBACK ---'
         if callback:
             callback('alalala')
         return None
-    
+
 def prnt(*args):
     print 'PRNT', ' '.join( repr(x) for x in args )
 
@@ -53,7 +53,7 @@ def test_remote():
 
     now = NowClient(exchange=exchange)
     exchange.register(now)
-    
+
     class Foo(NowObject):
         def handle_got_result(self, result):
             print 'GOT RESULT', result
@@ -63,7 +63,7 @@ def test_remote():
     now.default.auth.login(username='enki', password='secret', callback=bar.got_result )
 
 
-def test_new():    
+def test_new():
     # Root Object the client interfaces with
     now = NowObject()
     auth = AuthService(now, name='auth')
@@ -72,7 +72,7 @@ def test_new():
     now.auth().callback(prnt)
 
 
-def test_basic():    
+def test_basic():
     # Root Object the client interfaces with
     now = NowObject()
     auth = AuthService(now, name='auth')

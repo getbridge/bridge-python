@@ -7,7 +7,7 @@ def prnt(x):
 
 def main():
     now = NowClient()
-    
+
     def got_resized(file):
         print 'RESIZED', file
         file.get_localpath(prnt)

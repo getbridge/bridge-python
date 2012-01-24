@@ -15,7 +15,7 @@ def waitForAll(callback, tasks):
         # print 'retfun', len(completed), len(tasks), key, retfun, args
         if len(completed) == len(tasks):
             callback(completed)
-    
+
     if not tasks:
         callback(completed)
 

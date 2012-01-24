@@ -28,7 +28,7 @@ def main():
 
     def joined_workerpool(result):
         print 'JOINED'
-    
+
     now.system.join_workerpool('webpull', joined_workerpool)
 
     ioloop = tornado.ioloop.IOLoop.instance()

@@ -3,14 +3,14 @@ class NowPromise(object):
         self.cbs = []
         self.result = None
         self.have_result = False
-    
+
     def __call__(self):
         return self
 
     def callback(self, cb):
         self.cbs.append(cb)
         self.check_fire()
-    
+
     def set_result(self, result):
         assert not self.have_result, 'Can only fire once'
         if isinstance(result, NowPromise):
@@ -19,7 +19,7 @@ class NowPromise(object):
             self.result = result
             self.have_result = True
             self.check_fire()
-    
+
     def check_fire(self):
         if self.cbs and self.have_result:
             while self.cbs:

@@ -16,12 +16,12 @@ io.loop()
 =====
 
 class MQBConnection
-    lookup_map ... UUID 
+    lookup_map ... UUID
 
 class SanitizerService():
     def __init__(self):
         pass
-    
+
     def sendMessage(self, message):
         ... ?
 
@@ -30,16 +30,16 @@ class SanitizerService():
 class SanitizerFactory():
     def __init__(self):
         pass
-    
+
     def createSanitizer(self, callback, room):
-        callback( Sanitizer(room) ) 
+        callback( Sanitizer(room) )
 
 ####
 
 class Sanitizer():
     def __init__(self, room):
         self.room = room
-    
+
     def sendMessage(self, message):
         room.sendMessage(message.uppercase())
 
@@ -48,7 +48,7 @@ class Sanitizer():
 class RoomCreator():
     def joinRoom(callback, roomname):
         room = makeRoom(roomname)
-        
+
         sanitized_room = self.stored_SanitizerFactory.createSanitizer(room)
         callback( sanitized_room )
 

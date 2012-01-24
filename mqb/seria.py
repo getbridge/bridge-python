@@ -40,9 +40,9 @@ class NowObject(object):
 
             if self.is_original:
                 self.parent.register(self)
-        
+
         self.setup()
-    
+
     def setup(self):
         pass # abstract
 
@@ -69,7 +69,7 @@ class NowObject(object):
         while y:
             x.insert(0, y.name )
             y = y.parent
-        
+
         # fp = '.'.join(x)
         return x
 
@@ -79,13 +79,13 @@ class NowObject(object):
         while y:
             x.insert(0, y.public_name )
             y = y.parent
-        
+
         # fp = '.'.join(x)
         return x
 
     def __repr__(self):
         return '<' + self.__class__.__name__ + ' Path: ' + '.'.join(self.full_path()) + ' '  + repr(self.is_namespaced)  + '>'
-    
+
     def __call__(self, *args, **kwargs):
         promise = NowPromise()
 
@@ -93,7 +93,7 @@ class NowObject(object):
         arg_resolver = PromiseTreeResolver(unresolved_args)
         arg_promise = arg_resolver.resolve()
         arg_promise.callback( functools.partial(self.receive_resolved_args, promise) )
-        
+
         return promise
 
     def receive_resolved_args(self, promise, resolved_args):
@@ -103,9 +103,9 @@ class NowObject(object):
         retval = self.prepcall([], self.is_namespaced, *args, **kwargs)
         retval_resolver = PromiseTreeResolver(retval)
         retval_promise = retval_resolver.resolve()
-        
+
         retval_promise.callback( promise.set_result )
-    
+
     def find_original(self, pathchain=[]):
         pathchain = list(pathchain)
         if not self.is_original:
@@ -113,7 +113,7 @@ class NowObject(object):
             return self.parent.find_original(pathchain)
         else:
             return self.find_child(pathchain)
-    
+
     def find_child(self, pathchain):
         if pathchain:
             return self.children[pathchain.pop(0)].find_child(pathchain)
@@ -124,7 +124,7 @@ class NowObject(object):
         if not self.is_original:
             pathchain.insert(0, self.name)
             return self.parent.prepcall(pathchain, is_namespaced, *args, **kwargs)
-        else:   
+        else:
             return self.call(pathchain, is_namespaced, *args, **kwargs)
 
     def handle_end(self, *args, **kwargs):
@@ -149,12 +149,12 @@ class NowObject(object):
                 return handler(*args, **kwargs)
             else:
                 raise AttributeError("handler with remaining path %s" % (pathchain))
-        
+
         return self.not_found([next] + pathchain, is_namespaced, args, kwargs)
-    
+
     def not_found(self, pathchain, is_namespaced, args, kwargs):
         raise AttributeError( pathchain[0] )
-    
+
     def serialize_args_kwargs(self, args, kwargs):
         add_links = set()
         serialized_args= self.traverse(args, add_links)[1]
@@ -182,7 +182,7 @@ class NowObject(object):
             result = ('none', None)
         else:
             raise Exception("Unknown %s" % (type(pivot)))
-        
+
         if result[0] == 'now':
             need_add = result[1]['ref'][0]
             # print 'ADD LINK FOR', need_add
@@ -233,7 +233,7 @@ class NowObject(object):
             # print 'DEEP', bar
             foo = pathchain.pop(0)
             bar = getattr(bar, foo)
-        
+
         bar.is_namespaced = False
         # print 'REBUILT', bar, args, kwargs
         bar(*args, **kwargs)
@@ -244,7 +244,7 @@ class CallProxy:
         self.queue = []
         self.target = target
         self.fired = False
-    
+
     def reflect(self):
         self.fired = True
         for x in self.queue:
@@ -272,7 +272,7 @@ class NowClient(NowObject):
         self.mqbconn.message_received = self.message_received
 
         self.mqb = CallProxy(self.mqbconn)
-    
+
     def _subscribe_channel(self, name):
         pass
 
@@ -285,7 +285,7 @@ class NowClient(NowObject):
             # print 'GOT QUEUE', promise, result
             self.mqb.listen(queue=pool_queue_name)
             self.mqb.bind_queue(queue=pool_queue_name, exchange=self.mqb.DEFAULT_EXCHANGE, routing_key='N.' + name, callback=lambda x,y: callback(name) )
-        
+
         self.mqb.declare_queue(queue=pool_queue_name, callback=got_queue)
 
     def _leave_workerpool(self, name):
@@ -305,7 +305,7 @@ class NowClient(NowObject):
     def connection_made(self):
         print 'CONNECTION MADE'
         self.mqb.reflect()
-    
+
     def not_found(self, pathchain, is_namespaced, args, kwargs):
         print 'NOT FOUND', self, pathchain, is_namespaced, 'CALLING REMOTE'
         serargskwargs, add_links = self.serialize_args_kwargs(args, kwargs)
