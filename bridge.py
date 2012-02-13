@@ -1,3 +1,6 @@
+# XXX:
+# Figure out what is bridge-internal / protected.
+
 import logging
 from collections import namedtuple, defaultdict
 
@@ -44,10 +47,28 @@ class Bridge(object):
             self.connected = True
             self.emit('ready')
 
-    def onMessage(self, msg):
-        deserialize(msg)
+    def onMessage(self, obj):
+        deserialize(self, obj)
+        destination = obj.get('destination', None)
+        if destination and type(destination) is Ref:
+            chain = destination._getChain()
+            self.execute(chain, obj.get('args', []))
+        else:
+            self.log.warning('No destination in message %s.', obj)
+
+    def execute(self, chain, args):
+        service = self._children[chain[Chain.SERVICE]]
+        func = getattr(service, chain[Chain.METHOD], None)
+        if func:
+            func(service, *args)
+        else:
+            self.log.warning('Specified pathchain does not exist: %s.', chain)
 
 
+
+    def getPathObj(self, chain):
+        # use this pathchain to make a Ref
+        pass
 
     def ready(self, handler):
         pass
@@ -57,10 +78,7 @@ class Bridge(object):
 
     def join_channel(self, name, handler, callback):
         pass
-
-
-PathChain = namedtuple('PathChain', 'type, route, service, method')
-
+ 
 class _SystemService(object):
     def __init__(self, bridge):
         self.bridge = bridge
@@ -80,7 +98,25 @@ class _SystemService(object):
 
     def remote_error(self, msg):
         self.bridge.log.warn(msg)
-        self.bridge._emit('remoteError', msg)
+        self.bridge.emit('remoteError', msg)
+
+def deserialize(bridge, obj):
+    if type(obj) is dict:
+        for key, val in obj:
+            if type(val) is dict and 'ref' in val:
+                ref = bridge.getPathObj(val['ref'])
+                obj[key] = ref._setOps(val.get('operations', []))
+            else:
+                deserialize(bridge, obj[key])
+    else:
+        for elt in obj:
+            deserialize(bridge, elt)
+
+class Chain:
+    TYPE = 0
+    ROUTE = 1
+    SERVICE = 2
+    METHOD = 3
 
 class Connection(object):
     DEFAULT_EXCHANGE = 'T_DEFAULT'
