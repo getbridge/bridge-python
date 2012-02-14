@@ -123,7 +123,8 @@ class Bridge(object):
         aux.deserialize(self, obj)
         destination_ref = obj.get('destination', None)
         if isinstance(destination_ref, reference.Ref):
-            destination_ref._methodref_call(obj.get('args', []))
+            args = obj.get('args', [])
+            destination_ref._apply_method(args)
         else:
             self.log.warning('No destination in message %s.', obj)
 
@@ -139,19 +140,20 @@ class Service(object):
 
 class _System(Service):
     def hook_channel_handler(self, name, handler, func=None):
-
-        service_name = handler.pathchain.service
-        service = self.bridge._children[service_name]
+        service = handler._get_service()
         self.bridge._children['channel:' + name] = service
         if func:
-            func(self.bridge.getChannel(name), name)
+            chain = ['channel', name, 'channel:' + name]
+            ref = reference.LocalRef(self, chain, service)
+            func(ref, name)
 
     def getservice(self, name, func):
         if name in self.bridge._children:
             func(self.bridge._children[name])
         else:
-            func(None, 'Cannot find service {0}.'.format(name))
+            func(None, 'Cannot find service %s.' % (name))
 
     def remoteError(self, msg):
         self.bridge.log.warn(msg)
         self.bridge.emit('remoteError', msg)
+
