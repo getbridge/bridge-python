@@ -1,5 +1,19 @@
 import copy
 
+'''
+Reference is what you actually call whenever you 'call a method' that goes over rpc. It is the proxy object.
+
+When you implement a service, the methods are stored in a Service class. If you initialize a Reference by passing it a Service, it should inspect all of the methods in the service and pull the ones that do not have leading underscores '_<foo>' into a method dispatch dictionary. So when you do publish_service, you should make a Reference of yourself and keep it :-) -- that way you can give it to people if they ask nicely.
+
+Service itself should not have obfuscated dispatch tables / __getattribute__ logic. Just something short and sweet developers subclass.
+
+
+
+'''
+
+class Reference(object):
+
+
 class Reference(object):
     TYPE    = 0
     ROUTE   = 1

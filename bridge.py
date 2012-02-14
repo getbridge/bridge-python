@@ -9,8 +9,6 @@ import reference
 import logging
 from collections import defaultdict
 
-from twisted.internet import reactor
-
 class Bridge(object):
     def __init__(self, **kwargs):
         self.log = logging.getLogger(__name__)
@@ -34,26 +32,57 @@ class Bridge(object):
     def publish_service(self, name, service, func):
         if name in self_children:
             self.log.error('Invalid service name: "%s".', name)
-            return
-
-        service.set_chain(['named', name, name])
-        self.connection.publish_service(name, func)
-        self._children[name] = service
-        return service.get_reference()
+        else:
+            msg = {
+                'command': 'JOINWORKERPOOL',
+                'data': {
+                    'name': name,
+                    'callback': aux.serialize(self, func),
+                }
+            }
+            service.set_reference(chain=['named', name, name])
+            self._children[name] = service
+            self.connection.send(msg)
+            return service.get_reference()
 
     def join_channel(self, name, handler, func):
-        serialize(self, handler)
-
-        pass
+        msg = {
+            'command': 'JOINCHANNEL',
+            'data': {
+                'name': name,
+                'handler': aux.serialize(self, handler),
+                'callback': aux.serialize(self, func),
+            },
+        }
+        self.connection.send(msg)
 
     def get_service(self, name, func):
-        pass
+        msg = {
+            'command': 'GETOPS',
+            'data': {
+                'name': 'channel:' + name,
+                'callback': aux.serialize(self, func),
+            }
+        }
+        self.connection.send(msg)
 
-    def get_channel(self, name):
-        pass
+    def get_channel(self, name, func):
+        def _helper(service, error):
+            if error:
+                func(None, error)
+            else:
+                func(reference.Reference(
+                
+        msg = {
+            'command': 'GETOPS',
+            'data': {
+                'name': 'channel:' + name,
+                'callback': aux.serialize(self, _helper),
+            }
+        }
 
     def get_client_id(self):
-        pass
+        return self.connection.client_id
 
     def on(self, name, func):
         self._events[name].append(func)
@@ -71,12 +100,25 @@ class Bridge(object):
         return self
 
     def ready(self, func):
-        pass
+        if not self._connected:
+            self.on('ready', func)
+        else:
+            func()
+
+    def _send(self, args, destination_ref):
+        msg = {
+            'command': 'SEND',
+            'data': {
+                'args': aux.serialize(self, args),
+                'destination': aux.serialize(destination_ref),
+            }
+        }
+        self.connection.send(msg)
 
     def _on_ready(self):
         self.log.info('Handshake complete.')
-        if not self.connected:
-            self.connected = True
+        if not self._connected:
+            self._connected = True
             self.emit('ready')
 
     def _on_message(self, obj):
