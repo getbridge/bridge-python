@@ -8,7 +8,7 @@ from collections import defaultdict
 class Bridge(object):
     def __init__(self, **kwargs):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(kwargs.get('logLevel', logging.ERROR))
+        self.log.setLevel(kwargs.get('log_level', logging.ERROR))
         self.reconnect = kwargs.get('reconnect', True)
 
         self._events = defaultdict(list)
@@ -37,7 +37,7 @@ class Bridge(object):
                 'data': {
                     'name': name,
                     'callback': aux.serialize(self, func),
-                }
+                },
             }
             self._connection.send(msg)
             return ref
@@ -59,7 +59,7 @@ class Bridge(object):
             'data': {
                 'name': 'channel:' + name,
                 'callback': aux.serialize(self, func),
-            }
+            },
         }
         self._connection.send(msg)
 
@@ -76,7 +76,7 @@ class Bridge(object):
             'data': {
                 'name': 'channel:' + name,
                 'callback': aux.serialize(self, _helper),
-            }
+            },
         }
         self._connection.send(msg)
 
@@ -110,7 +110,7 @@ class Bridge(object):
             'data': {
                 'args': aux.serialize(self, args),
                 'destination': aux.serialize(destination_ref),
-            }
+            },
         }
         self._connection.send(msg)
 

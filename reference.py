@@ -25,7 +25,7 @@ class LocalRef(Ref):
         try:
             return getattr(self._service, name)
         except AttributeError:
-            self._bridge.log.error('%s does not exist.' % (name))
+            self._bridge.log.error('Local %s does not exist.' % (name))
 
     def _apply_method(self, args):
         func = self._service[self._chain[METHOD]]
@@ -35,6 +35,9 @@ class RemoteRef(Ref):
     def __getattr__(self, name):
         if name in self._service._ops:
             return lambda args: self._rpc(self._chain + [name], args)
+        else:
+            self._bridge.log.error('Remote %s does not exist.' % (name))
+            return lambda args: None
 
     def _apply_method(self, args):
         self._rpc(self._chain, args)
