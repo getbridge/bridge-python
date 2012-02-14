@@ -30,7 +30,8 @@ class Bridge(object):
             self.log.error('Invalid service name: "%s".', name)
         else:
             self._children[name] = service
-            ref = reference.LocalRef(self, ['named', name, name], service)
+            chain = ['named', name, name]
+            ref = reference.LocalRef(self, chain, service)
             service._set_ref(ref)
             msg = {
                 'command': 'JOINWORKERPOOL',
@@ -68,8 +69,8 @@ class Bridge(object):
             if error:
                 func(None, error)
             else:
-                pathchain = ['channel', name, 'channel:' + name]
-                func(reference.RemoteRef(self, pathchain, service), None)
+                chain = ['channel', name, 'channel:' + name]
+                func(reference.RemoteRef(self, chain, service), None)
 
         msg = {
             'command': 'GETOPS',
@@ -109,7 +110,7 @@ class Bridge(object):
             'command': 'SEND',
             'data': {
                 'args': aux.serialize(self, args),
-                'destination': aux.serialize(destination_ref),
+                'destination': aux.serialize(self, destination_ref),
             },
         }
         self._connection.send(msg)
