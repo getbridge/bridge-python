@@ -69,7 +69,8 @@ class Bridge(object):
                 func(None, error)
             else:
                 pathchain = ['channel', name, 'channel:' + name]
-                func(reference.RemoteRef(self, pathchain), None)
+                func(reference.RemoteRef(self, pathchain, service), None)
+
         msg = {
             'command': 'GETOPS',
             'data': {
@@ -126,7 +127,7 @@ class Bridge(object):
             args = obj.get('args', [])
             destination_ref._apply_method(args)
         else:
-            self.log.warning('No destination in message %s.', obj)
+            self.log.error('No destination in message %s.', obj)
 
 class Service(object):
     def __init__(self, bridge):
@@ -139,6 +140,11 @@ class Service(object):
         self._ref = ref
 
 class _System(Service):
+    def __init__(self, bridge):
+        super().__init__(bridge)
+        chain = ['named', 'system', 'system']
+        self._ref = reference.LocalRef(bridge, chain, self)
+
     def hook_channel_handler(self, name, handler, func=None):
         service = handler._get_service()
         self.bridge._children['channel:' + name] = service
@@ -154,6 +160,11 @@ class _System(Service):
             func(None, 'Cannot find service %s.' % (name))
 
     def remoteError(self, msg):
-        self.bridge.log.warn(msg)
+        self.bridge.log.error(msg)
         self.bridge.emit('remoteError', msg)
+
+class _RemoteService(Service):
+    def __init__(self, bridge, ops):
+        super().__init__(bridge)
+        self._ops = ops
 
