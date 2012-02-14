@@ -1,6 +1,3 @@
-# XXX
-# package twisted and simplejson
-
 import aux
 import service
 import connection
@@ -40,10 +37,11 @@ class Bridge(object):
                     'callback': aux.serialize(self, func),
                 }
             }
-            service.set_reference(chain=['named', name, name])
+            ref = reference.LocalRef(service, ['named', name, name])
+            service._set_ref(ref)
             self._children[name] = service
-            self.connection.send(msg)
-            return service.get_reference()
+            self._connection.send(msg)
+            return ref
 
     def join_channel(self, name, handler, func):
         msg = {
@@ -54,7 +52,7 @@ class Bridge(object):
                 'callback': aux.serialize(self, func),
             },
         }
-        self.connection.send(msg)
+        self._connection.send(msg)
 
     def get_service(self, name, func):
         msg = {
@@ -64,14 +62,15 @@ class Bridge(object):
                 'callback': aux.serialize(self, func),
             }
         }
-        self.connection.send(msg)
+        self._connection.send(msg)
 
     def get_channel(self, name, func):
         def _helper(service, error):
             if error:
                 func(None, error)
             else:
-                func(reference.Reference(
+                pathchain = ['channel', name, 'channel:' + name]
+                func(reference.RemoteRef(pathchain), None)
                 
         msg = {
             'command': 'GETOPS',
@@ -80,9 +79,10 @@ class Bridge(object):
                 'callback': aux.serialize(self, _helper),
             }
         }
+        self._connection.send(msg)
 
     def get_client_id(self):
-        return self.connection.client_id
+        return self._connection.client_id
 
     def on(self, name, func):
         self._events[name].append(func)
@@ -113,7 +113,7 @@ class Bridge(object):
                 'destination': aux.serialize(destination_ref),
             }
         }
-        self.connection.send(msg)
+        self._connection.send(msg)
 
     def _on_ready(self):
         self.log.info('Handshake complete.')
@@ -122,18 +122,9 @@ class Bridge(object):
             self.emit('ready')
 
     def _on_message(self, obj):
-        ref.deserialize(self, obj)
-        destination = obj.get('destination', None)
-        if destination and type(destination) is Ref:
-            chain = destination._getChain()
-            self.execute(chain, obj.get('args', []))
+        aux.deserialize(self, obj)
+        destination_ref = obj.get('destination', None)
+        if isinstance(destination_ref, reference.Ref):
+            destination_ref._methodref_call(obj.get('args', []))
         else:
             self.log.warning('No destination in message %s.', obj)
-
-    def _execute(self, chain, args):
-        service = self._children[chain[ref.SERVICE]]
-        func = getattr(service, chain[ref.METHOD], None)
-        if func:
-            func(service, *args)
-        else:
-            self.log.warning('Specified pathchain does not exist: %s.', chain)
