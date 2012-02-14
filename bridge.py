@@ -1,5 +1,4 @@
 import aux
-import service
 import connection
 import reference
 
@@ -16,7 +15,7 @@ class Bridge(object):
         self._connected = False
         self._connection = connection.Connection(self)
         self._children = {
-            'system': service._System(self)
+            'system': _System(self)
         }
 
         # Client-only.
@@ -30,6 +29,9 @@ class Bridge(object):
         if name in self_children:
             self.log.error('Invalid service name: "%s".', name)
         else:
+            self._children[name] = service
+            ref = reference.LocalRef(self, ['named', name, name], service)
+            service._set_ref(ref)
             msg = {
                 'command': 'JOINWORKERPOOL',
                 'data': {
@@ -37,9 +39,6 @@ class Bridge(object):
                     'callback': aux.serialize(self, func),
                 }
             }
-            ref = reference.LocalRef(service, ['named', name, name])
-            service._set_ref(ref)
-            self._children[name] = service
             self._connection.send(msg)
             return ref
 
@@ -70,8 +69,7 @@ class Bridge(object):
                 func(None, error)
             else:
                 pathchain = ['channel', name, 'channel:' + name]
-                func(reference.RemoteRef(pathchain), None)
-                
+                func(reference.RemoteRef(self, pathchain), None)
         msg = {
             'command': 'GETOPS',
             'data': {
@@ -128,3 +126,32 @@ class Bridge(object):
             destination_ref._methodref_call(obj.get('args', []))
         else:
             self.log.warning('No destination in message %s.', obj)
+
+class Service(object):
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def _get_ref(self):
+        return self._ref
+
+    def _set_ref(self, ref):
+        self._ref = ref
+
+class _System(Service):
+    def hook_channel_handler(self, name, handler, func=None):
+
+        service_name = handler.pathchain.service
+        service = self.bridge._children[service_name]
+        self.bridge._children['channel:' + name] = service
+        if func:
+            func(self.bridge.getChannel(name), name)
+
+    def getservice(self, name, func):
+        if name in self.bridge._children:
+            func(self.bridge._children[name])
+        else:
+            func(None, 'Cannot find service {0}.'.format(name))
+
+    def remoteError(self, msg):
+        self.bridge.log.warn(msg)
+        self.bridge.emit('remoteError', msg)
