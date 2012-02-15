@@ -1,6 +1,7 @@
 import sys
 import struct
 import socket
+from collections import deque
 
 from tornado import ioloop, iostream
 from tornado.escape import json_encode, json_decode, utf8, to_unicode
@@ -10,6 +11,7 @@ class Connection(object):
         self.bridge = bridge
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
+        self.msg_queue = deque()
         self.establish_connection()
 
     def establish_connection(self):
@@ -35,6 +37,9 @@ class Connection(object):
         }
         self.send(msg)
         self.stream.set_close_callback(self.close_handler)
+        if len(self.msg_queue):
+            self.bridge.emit('reconnect')
+            self.loop.add_callback(self.process_queue)
         self.wait()
 
     def wait(self, func):
@@ -74,7 +79,16 @@ class Connection(object):
             self.interval *= 2
             self.loop.add_timeout(self.interval, self.reconnect)
 
+    def process_queue(self):
+        while self.bridge.connected and len(self.msg_queue):
+            buf = self.msg_queue.popleft()
+            self.stream.write(buf)
+
     def send(self, msg):
         data = utf8(json_encode(msg))
         size = struct.pack('>I', len(data))
-        self.stream.write(size + data)
+        buf = size + data
+        if self.bridge.connected:
+            self.stream.write(buf)
+        else:
+            self.msg_queue.append(buf)
