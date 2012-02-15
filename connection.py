@@ -20,7 +20,8 @@ class Connection(object):
         self.bridge.log.info('Connecting to (%s:%s).',
                              self.bridge.host, self.bridge.port)
         self.stream.connect((bridge.host, bridge.port), self.on_connect)
-        self.loop.start()
+        if not self.loop.running():
+            self.loop.start()
 
     def on_connect(self):
         msg_id = getattr(self, 'client_id', 0)
