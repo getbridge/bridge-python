@@ -13,12 +13,13 @@ class Connection(object):
         self.establish_connection()
 
     def establish_connection(self):
-        self.sock = socket.socket(AF_UNSPEC, socket.SOCK_STREAM, 0)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
         self.bridge.log.info('Connecting to (%s:%s).',
                              self.bridge.host, self.bridge.port)
-        self.stream.connect((bridge.host, bridge.port), self.on_connect)
+        server = (self.bridge.host, self.bridge.port)
+        self.stream.connect(server, self.on_connect)
         if not self.loop.running():
             self.loop.start()
 

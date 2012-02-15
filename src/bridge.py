@@ -20,7 +20,7 @@ class Bridge(object):
         self._connection = connection.Connection(self)
 
     def publish_service(self, name, service, func):
-        if name in self_children:
+        if name in self._children:
             self.log.error('Invalid service name: "%s".', name)
         else:
             self._children[name] = service
