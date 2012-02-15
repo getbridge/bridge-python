@@ -2,6 +2,7 @@ import aux
 import connection
 import reference
 
+import copy
 import logging
 from collections import defaultdict
 
@@ -109,12 +110,6 @@ class Bridge(object):
         }
         self._connection.send(msg)
 
-    def _on_ready(self):
-        self.log.info('Handshake complete.')
-        if not self.connected:
-            self.connected = True
-            self.emit('ready')
-
     def _on_message(self, obj):
         try:
             destination_ref, args = aux.parse_server_cmd(self, obj)
@@ -136,13 +131,12 @@ class _System(Service):
         self._ref = reference.LocalRef(bridge, chain, self)
 
     def hook_channel_handler(self, name, handler, func=None):
-        # XXX: Do we need to update the ref of the copied service
-        # to reflect the new pathchain?
-        service = handler._service
+        service = copy.copy(handler._service)
+        chain = ['channel', name, 'channel:' + name]
+        ref = reference.LocalRef(self, chain, service)
+        service._ref = ref
         self.bridge._children['channel:' + name] = service
         if func:
-            chain = ['channel', name, 'channel:' + name]
-            ref = reference.LocalRef(self, chain, service)
             func(ref, name)
 
     def getservice(self, name, func):
@@ -159,4 +153,3 @@ class _RemoteService(Service):
     def __init__(self, bridge, ops):
         super().__init__(bridge)
         self._ops = ops
-

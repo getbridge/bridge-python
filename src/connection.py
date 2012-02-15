@@ -53,9 +53,15 @@ class Connection(object):
         self.wait()
 
     def on_message(self, msg):
-        self.client_id, self.secret = map(int, msg.split('|'))
+        try:
+            self.client_id, self.secret = map(int, msg.split('|'))
+        except:
+            raise NotImplemented()
+
         self.on_message = self._replacement_on_message
-        self.bridge._on_ready()
+        self.bridge.log.info('Handshake complete.')
+        self.bridge.connected = True
+        self.bridge.emit('ready')
 
     def _replacement_on_message(self, msg):
         try:
