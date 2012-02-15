@@ -9,7 +9,7 @@ class ChatServer(bridge.Service):
 
 def start_server():
     def on_client_join():
-        print("I joined the lobby!")
+        print("Client joined the lobby.")
 
     bridge.publish_service('chatserver', ChatServer, on_client_join)
 
