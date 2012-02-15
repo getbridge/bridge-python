@@ -7,23 +7,17 @@ from collections import defaultdict
 
 class Bridge(object):
     def __init__(self, **kwargs):
+        self.host = kwargs.get('host', 'localhost')
+        self.port = kwargs.get('port', 8090)
+        self.reconnect = kwargs.get('reconnect', True)
         self.log = logging.getLogger(__name__)
         self.log.setLevel(kwargs.get('log_level', logging.ERROR))
-        self.reconnect = kwargs.get('reconnect', True)
-
+        self.connected = False
         self._events = defaultdict(list)
-        self._connected = False
-        self._connection = connection.Connection(self)
         self._children = {
             'system': _System(self)
         }
-
-        # Client-only.
-        self.url = kwargs.get('url', 'http://localhost:8080/bridge')
-
-        # Server-only.
-        self.host = kwargs.get('host', 'localhost')
-        self.port = kwargs.get('port', 8090)
+        self._connection = connection.Connection(self)
 
     def publish_service(self, name, service, func):
         if name in self_children:
@@ -100,7 +94,7 @@ class Bridge(object):
         return self
 
     def ready(self, func):
-        if not self._connected:
+        if not self.connected:
             self.on('ready', func)
         else:
             func()
@@ -117,8 +111,8 @@ class Bridge(object):
 
     def _on_ready(self):
         self.log.info('Handshake complete.')
-        if not self._connected:
-            self._connected = True
+        if not self.connected:
+            self.connected = True
             self.emit('ready')
 
     def _on_message(self, obj):
