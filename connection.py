@@ -7,7 +7,6 @@ from tornado.escape import json_encode, json_decode, utf8, to_unicode
 
 class Connection(object):
     def __init__(self, bridge, interval=400):
-        super().__init__(self)
         self.bridge = bridge
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
@@ -45,11 +44,11 @@ class Connection(object):
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
-        self.on_message({'data': to_unicode(data)})
+        self.on_message(to_unicode(data))
         self.wait()
 
     def on_message(self, msg):
-        self.client_id, self.secret = msg['data'].split('|')
+        self.client_id, self.secret = msg.split('|')
         self.on_message = self._replacement_on_message
         self.bridge._on_ready()
 
@@ -78,4 +77,3 @@ class Connection(object):
         data = utf8(json_encode(msg))
         size = struct.pack('>I', len(data))
         self.stream.write(size + data)
-
