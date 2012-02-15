@@ -26,7 +26,7 @@ class Bridge(object):
             self._children[name] = service
             chain = ['named', name, name]
             ref = reference.LocalRef(self, chain, service)
-            service._set_ref(ref)
+            service._ref = ref
             msg = {
                 'command': 'JOINWORKERPOOL',
                 'data': {
@@ -116,23 +116,18 @@ class Bridge(object):
             self.emit('ready')
 
     def _on_message(self, obj):
-        aux.deserialize(self, obj)
-        destination_ref = obj.get('destination', None)
-        if isinstance(destination_ref, reference.Ref):
-            args = obj.get('args', [])
-            destination_ref._apply_method(args)
-        else:
-            self.log.error('No destination in message %s.', obj)
+        try:
+            destination_ref, args = aux.parse_server_cmd(self, obj)
+        except:
+            self.log.error('Received bad message from server.')
+            return
+
+        destination_ref._apply_method(args)
 
 class Service(object):
     def __init__(self, bridge):
         self.bridge = bridge
-
-    def _get_ref(self):
-        return self._ref
-
-    def _set_ref(self, ref):
-        self._ref = ref
+        self._ref = None
 
 class _System(Service):
     def __init__(self, bridge):
@@ -141,7 +136,9 @@ class _System(Service):
         self._ref = reference.LocalRef(bridge, chain, self)
 
     def hook_channel_handler(self, name, handler, func=None):
-        service = handler._get_service()
+        # XXX: Do we need to update the ref of the copied service
+        # to reflect the new pathchain?
+        service = handler._service
         self.bridge._children['channel:' + name] = service
         if func:
             chain = ['channel', name, 'channel:' + name]

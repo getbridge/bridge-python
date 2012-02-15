@@ -9,16 +9,8 @@ class Ref(object):
         self._chain = chain
         self._service = service
 
-    def _get_service(self):
-        if self._service:
-            return self._service
-        else:
-            name = self._chain[SERVICE]
-            self._service = self._bridge._children[name]
-            return self._service
-
     def _apply_method(self, args):
-        pass
+        raise NotImplemented()
 
 class LocalRef(Ref):
     def __getattr__(self, name):
@@ -44,4 +36,7 @@ class RemoteRef(Ref):
 
     def _rpc(self, pathchain, args):
         self._bridge._send(args, pathchain)
-        
+
+def get_service(bridge, chain):
+    name = chain[SERVICE]
+    return bridge._children[name]
