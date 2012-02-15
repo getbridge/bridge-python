@@ -12,6 +12,8 @@ class Connection(object):
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
+        self.client_id = 0
+        self.secret = 0
         self.establish_connection()
 
     def establish_connection(self):
@@ -26,13 +28,10 @@ class Connection(object):
             self.loop.start()
 
     def on_connect(self):
-        msg_id = getattr(self, 'client_id', 0)
-        msg_secret = getattr(self, 'secret', 0)
         msg = {
             'command': 'CONNECT',
             'data': {
-                'session': msg_id,
-                'secret': msg_secret,
+                'session': [self.client_id, self.secret],
             },
         }
         self.send(msg)
@@ -54,7 +53,7 @@ class Connection(object):
         self.wait()
 
     def on_message(self, msg):
-        self.client_id, self.secret = msg.split('|')
+        self.client_id, self.secret = map(int, msg.split('|'))
         self.on_message = self._replacement_on_message
         self.bridge._on_ready()
 
@@ -66,9 +65,10 @@ class Connection(object):
             self.bridge.log.info('Dropping corrupted message.')
 
     def close_handler(self):
-        self.bridge.error('Connection shutdown.')
         self.bridge.connected = False
         self.loop.stop()
+        self.bridge.error('Connection shutdown.')
+        self.bridge.emit('disconnect')
         if self.bridge.reconnect:
             self.reconnect()
 

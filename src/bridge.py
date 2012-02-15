@@ -122,7 +122,7 @@ class Bridge(object):
             self.log.error('Received bad message from server.')
             return
 
-        destination_ref._apply_method(args)
+        destination_ref(args)
 
 class Service(object):
     def __init__(self, bridge):

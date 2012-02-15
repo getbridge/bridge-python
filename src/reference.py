@@ -9,7 +9,7 @@ class Ref(object):
         self._chain = chain
         self._service = service
 
-    def _apply_method(self, args):
+    def __call__(self, args):
         raise NotImplemented()
 
 class LocalRef(Ref):
@@ -19,7 +19,7 @@ class LocalRef(Ref):
         except AttributeError:
             self._bridge.log.error('Local %s does not exist.' % (name))
 
-    def _apply_method(self, args):
+    def __call__(self, args):
         func = self._service[self._chain[METHOD]]
         func(*args)
 
@@ -31,7 +31,7 @@ class RemoteRef(Ref):
             self._bridge.log.error('Remote %s does not exist.' % (name))
             return lambda args: None
 
-    def _apply_method(self, args):
+    def __call__(self, args):
         self._rpc(self._chain, args)
 
     def _rpc(self, pathchain, args):
