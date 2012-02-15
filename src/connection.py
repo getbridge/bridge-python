@@ -12,8 +12,8 @@ class Connection(object):
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
-        self.client_id = 0
-        self.secret = 0
+        self.client_id = None
+        self.secret = None
         self.establish_connection()
 
     def establish_connection(self):
@@ -54,7 +54,7 @@ class Connection(object):
 
     def on_message(self, msg):
         try:
-            self.client_id, self.secret = map(int, msg.split('|'))
+            self.client_id, self.secret = msg.split('|')
         except:
             raise NotImplemented()
 
