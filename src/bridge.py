@@ -1,10 +1,10 @@
-import aux
-import connection
-import reference
-
 import copy
 import logging
 from collections import defaultdict
+
+import aux
+import connection
+import reference
 
 class Bridge(object):
     def __init__(self, **kwargs):

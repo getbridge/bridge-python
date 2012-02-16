@@ -1,3 +1,6 @@
+import random
+import string
+
 import reference
 
 def serialize(bridge, obj):
@@ -5,7 +8,16 @@ def serialize(bridge, obj):
     pass
 
 def serialize_func(bridge, func):
-    pass
+    name = gen_guid()
+    chain = ['client', bridge.get_client_id(), name]
+    ref = reference.LocalRef(bridge, chain, reference.Service(bridge))
+    service = ref._service
+    service.callback = func
+    bridge._children[name] = service
+    return ref._to_dict()
+
+def gen_guid():
+    return ''.join([random.choice(string.ascii_letters) for k in range(32)])
 
 def parse_server_cmd(bridge, obj):
     chain = obj['destination']['ref']

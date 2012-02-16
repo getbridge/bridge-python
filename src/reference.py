@@ -18,7 +18,7 @@ class Ref(object):
         val = {
             'ref': self._chain,
         }
-        if len(self._chain) < 4:
+        if is_method_ref(self):
             val['operations'] = self._get_ops()
         return val
 
@@ -67,6 +67,12 @@ class Service(object):
         self.bridge = bridge
         self._ref = None
 
+    def __call__(self, *args):
+        if hasattr(self, 'callback'):
+            self.callback(*args)
+        else:
+            self.bridge.log.error('Invalid method call on %s.', self._ref)
+
 class RemoteService(Service):
     def __init__(self, bridge, ops):
         super().__init__(bridge)
@@ -75,3 +81,6 @@ class RemoteService(Service):
 def get_service(bridge, chain):
     name = chain[SERVICE]
     return bridge._children[name]
+
+def is_method_ref(ref):
+    return len(ref._chain) == 4
