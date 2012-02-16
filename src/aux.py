@@ -4,6 +4,9 @@ def serialize(bridge, obj):
     # obj -> function || Ref || [obj] || {str: obj} || atom
     pass
 
+def serialize_func(bridge, func):
+    pass
+
 def parse_server_cmd(bridge, obj):
     chain = obj['destination']['ref']
     args = deserialize(bridge, obj['args'])

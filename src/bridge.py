@@ -32,7 +32,7 @@ class Bridge(object):
                 'command': 'JOINWORKERPOOL',
                 'data': {
                     'name': name,
-                    'callback': aux.serialize(self, func),
+                    'callback': aux.serialize_func(self, func),
                 },
             }
             self._connection.send(msg)
@@ -43,8 +43,8 @@ class Bridge(object):
             'command': 'JOINCHANNEL',
             'data': {
                 'name': name,
-                'handler': aux.serialize(self, handler),
-                'callback': aux.serialize(self, func),
+                'handler': handler._to_dict(),
+                'callback': aux.serialize_func(self, func),
             },
         }
         self._connection.send(msg)
@@ -54,7 +54,7 @@ class Bridge(object):
             'command': 'GETOPS',
             'data': {
                 'name': 'channel:' + name,
-                'callback': aux.serialize(self, func),
+                'callback': aux.serialize_func(self, func),
             },
         }
         self._connection.send(msg)
@@ -71,7 +71,7 @@ class Bridge(object):
             'command': 'GETOPS',
             'data': {
                 'name': 'channel:' + name,
-                'callback': aux.serialize(self, _helper),
+                'callback': aux.serialize_func(self, _helper),
             },
         }
         self._connection.send(msg)
@@ -105,7 +105,7 @@ class Bridge(object):
             'command': 'SEND',
             'data': {
                 'args': aux.serialize(self, args),
-                'destination': aux.serialize(self, destination_ref),
+                'destination': destination_ref._to_dict(),
             },
         }
         self._connection.send(msg)

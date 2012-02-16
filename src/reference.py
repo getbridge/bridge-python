@@ -1,3 +1,5 @@
+import types
+
 TYPE    = 0
 ROUTE   = 1
 SERVICE = 2
@@ -12,6 +14,17 @@ class Ref(object):
     def __call__(self, args):
         raise NotImplemented()
 
+    def _to_dict(self):
+        val = {
+            'ref': self._chain,
+        }
+        if len(self._chain) < 4:
+            val['operations'] = self._get_ops()
+        return val
+
+    def _get_ops(self):
+        raise NotImplemented()
+
 class LocalRef(Ref):
     def __getattr__(self, name):
         try:
@@ -22,6 +35,11 @@ class LocalRef(Ref):
     def __call__(self, args):
         func = self._service[self._chain[METHOD]]
         func(*args)
+
+    def _get_ops(self):
+        return [fn for fn in dir(self)
+                    if not fn.startswith('_') and
+                        type(getattr(self, fn)) == types.FunctionType]
 
 class RemoteRef(Ref):
     def __getattr__(self, name):
@@ -36,6 +54,9 @@ class RemoteRef(Ref):
 
     def _rpc(self, pathchain, args):
         self._bridge._send(args, pathchain)
+
+    def _get_ops(self):
+        return self._service._ops
 
 class Service(object):
     def __init__(self, bridge):
