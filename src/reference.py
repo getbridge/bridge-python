@@ -37,9 +37,13 @@ class LocalRef(Ref):
         func(*args)
 
     def _get_ops(self):
-        return [fn for fn in dir(self)
-                    if not fn.startswith('_') and
-                        type(getattr(self, fn)) == types.FunctionType]
+        if hasattr(self, '_ops'):
+            return self._ops
+
+        self._ops = [fn for fn in dir(self)
+                        if not fn.startswith('_') and
+                            type(getattr(self, fn)) == types.FunctionType]
+        return self._ops
 
 class RemoteRef(Ref):
     def __getattr__(self, name):
