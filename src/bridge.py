@@ -6,8 +6,25 @@ import aux
 import connection
 import reference
 
+'''
+@package bridge
+A Python API for bridge clients.
+'''
+
 class Bridge(object):
+    '''Encapsulates all interactions with the Bridge server.'''
+
     def __init__(self, **kwargs):
+        '''Initialize Bridge.
+
+        @param kwargs Specify optional config information.
+        @param host Bridge host. Defaults to 'localhost'.
+        @param port Bridge port. Defaults to 8090.
+        @param reconnect Defaults to True to enable reconnects.
+        @param log_level Defaults to logging.ERROR.
+        @var self.log Bridge logger instance.
+        @var self.connected Connection state, initially False.
+        '''
         self.host = kwargs.get('host', 'localhost')
         self.port = kwargs.get('port', 8090)
         self.reconnect = kwargs.get('reconnect', True)
@@ -21,6 +38,13 @@ class Bridge(object):
         self._connection = connection.Connection(self)
 
     def publish_service(self, name, service, func):
+        '''Publish a service to Bridge.
+
+        @param name The name of the service.
+        @param service Some instance of bridge.Service.
+        @param func A callback triggered when the service has been published.
+        @param func No arguments are passed to func.
+        '''
         if name in self._children:
             self.log.error('Invalid service name: "%s".', name)
         else:
@@ -32,29 +56,38 @@ class Bridge(object):
                 'command': 'JOINWORKERPOOL',
                 'data': {
                     'name': name,
-                    'callback': aux.serialize_func(self, func),
+                    'callback': aux.serialize(self, func),
                 },
             }
             self._connection.send(msg)
             return ref
 
     def join_channel(self, name, handler, func):
+        '''Register a handler with a channel.
+
+        @param name The name of the channel.
+        @param handler Some client-provided instance of bridge.Service.
+        @param func A callback triggered after the handler is attached.
+        @param func No arguments are passed to func.
+        '''
         msg = {
             'command': 'JOINCHANNEL',
             'data': {
                 'name': name,
                 'handler': handler._to_dict(),
-                'callback': aux.serialize_func(self, func),
+                'callback': aux.serialize(self, func),
             },
         }
         self._connection.send(msg)
 
     def get_service(self, name, func):
+        '''
+        '''
         msg = {
             'command': 'GETOPS',
             'data': {
                 'name': 'channel:' + name,
-                'callback': aux.serialize_func(self, func),
+                'callback': aux.serialize(self, func),
             },
         }
         self._connection.send(msg)
