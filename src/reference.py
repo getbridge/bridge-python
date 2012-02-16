@@ -40,3 +40,13 @@ class RemoteRef(Ref):
 def get_service(bridge, chain):
     name = chain[SERVICE]
     return bridge._children[name]
+
+class Service(object):
+    def __init__(self, bridge):
+        self.bridge = bridge
+        self._ref = None
+
+class _RemoteService(Service):
+    def __init__(self, bridge, ops):
+        super().__init__(bridge)
+        self._ops = ops

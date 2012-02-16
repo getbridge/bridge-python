@@ -119,10 +119,7 @@ class Bridge(object):
 
         destination_ref(args)
 
-class Service(object):
-    def __init__(self, bridge):
-        self.bridge = bridge
-        self._ref = None
+Service = reference.Service
 
 class _System(Service):
     def __init__(self, bridge):
@@ -148,8 +145,3 @@ class _System(Service):
     def remoteError(self, msg):
         self.bridge.log.error(msg)
         self.bridge.emit('remoteError', msg)
-
-class _RemoteService(Service):
-    def __init__(self, bridge, ops):
-        super().__init__(bridge)
-        self._ops = ops
