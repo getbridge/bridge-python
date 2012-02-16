@@ -37,11 +37,24 @@ class Bridge(object):
         }
         self._connection = connection.Connection(self)
 
+    def ready(self, func):
+        '''Entry point into the Bridge event loop.
+
+        func is called when this node has established a connection to a
+        Bridge instance.
+
+        @param func A function of no arguments, called upon initialization.
+        '''
+        if not self.connected:
+            self.on('ready', func)
+        else:
+            func()
+
     def publish_service(self, name, service, func):
         '''Publish a service to Bridge.
 
         @param name The name of the service.
-        @param service Some instance of bridge.Service.
+        @param service Some instance of Service.
         @param func A callback triggered when the service has been published.
         @param func No arguments are passed to func.
         '''
@@ -66,7 +79,7 @@ class Bridge(object):
         '''Register a handler with a channel.
 
         @param name The name of the channel.
-        @param handler Some client-provided instance of bridge.Service.
+        @param handler An opaque reference to a Service.
         @param func A callback triggered after the handler is attached.
         @param func No arguments are passed to func.
         '''
@@ -81,7 +94,11 @@ class Bridge(object):
         self._connection.send(msg)
 
     def get_service(self, name, func):
-        '''
+        '''Fetch a service from Bridge.
+
+        @param name The name of the requested service.
+        @param func A callback triggered once the service has been received.
+        @param func func is given an opaque reference to a Service.
         '''
         msg = {
             'command': 'GETOPS',
@@ -93,6 +110,12 @@ class Bridge(object):
         self._connection.send(msg)
 
     def get_channel(self, name, func):
+        '''Fetch a channel from Bridge.
+
+        @param name The name of the requested channel.
+        @param func A callback triggered once the channel has been received.
+        @param func func is given an opaque reference and an error message.
+        '''
         def _helper(service, error):
             if error:
                 func(None, error)
@@ -110,28 +133,47 @@ class Bridge(object):
         self._connection.send(msg)
 
     def get_client_id(self):
+        '''Finds the client ID of this node.
+
+        @return None || str
+        '''
         return self._connection.client_id
 
     def on(self, name, func):
+        '''Registers a callback for the specified event.
+
+        Event names and arity;
+        ready/0
+        disconnect/0
+        reconnect/0
+        remote_error/1 (msg)
+
+        @param name The name of the event to listen for.
+        @param func A callback triggered when this event is emitted.
+        '''
         self._events[name].append(func)
         return self
 
     def emit(self, name, *args):
+        '''Triggers an event. 
+
+        @param name An arbitrary name of the event to be triggered.
+        @param args A list of arguments to the event callback.
+        '''
         if name in self._events:
             for func in self._events[name]:
                 func(*args)
         return self
 
     def remove_event(self, name, func):
+        '''Removes a callback for the given event name.
+
+        @param name Name of an event.
+        @param func The function object to be removed as an event handler.
+        '''
         if name in self._events:
             self._events[name].remove(func)
         return self
-
-    def ready(self, func):
-        if not self.connected:
-            self.on('ready', func)
-        else:
-            func()
 
     def _send(self, args, destination_ref):
         msg = {
