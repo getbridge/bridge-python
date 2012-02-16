@@ -1,11 +1,22 @@
+import types
 import random
 import string
 
 import reference
 
 def serialize(bridge, obj):
-    # obj -> function || Ref || [obj] || {str: obj} || atom
-    pass
+    if type(obj) == types.FunctionType:
+        return serialize_func(bridge, obj)
+    elif isinstance(obj, reference.Ref):
+        return obj._to_dict()
+    else:
+        for container, key, val in deep_scan(obj, nonatomic_matcher):
+            container[key] = serialize(val)
+        return obj
+    
+def nonatomic_matcher(key, val):
+    return isinstance(val, reference.Ref) or
+                type(val) == types.FunctionType
 
 def serialize_func(bridge, func):
     name = gen_guid()
@@ -17,7 +28,9 @@ def serialize_func(bridge, func):
     return ref._to_dict()
 
 def gen_guid():
-    return ''.join([random.choice(string.ascii_letters) for k in range(32)])
+    return ''.join([
+        random.choice(string.ascii_letters) for k in range(32)
+    ])
 
 def parse_server_cmd(bridge, obj):
     chain = obj['destination']['ref']
@@ -26,7 +39,7 @@ def parse_server_cmd(bridge, obj):
     return service._ref, args
 
 def deserialize(bridge, obj):
-    for container, key, ref in find_refs(obj):
+    for container, key, ref in deep_scan(obj, ref_matcher):
         chain = ref['ref']
         try:
             service = reference.get_service(chain)
@@ -39,16 +52,18 @@ def deserialize(bridge, obj):
         finally:
             container[key] = service._ref
 
-def find_refs(obj):
-    # obj -> [obj] || {str: obj} || atom
+def ref_matcher(key, val):
+    return type(val) == dict and 'ref' in val
+
+def deep_scan(obj, matcher):
     iterator = []
-    if type(obj) is list:
-        iterator = enumerate(obj)
-    elif type(obj) is dict:
+    if type(obj) is dict:
         iterator = obj
+    elif type(obj) is list:
+        iterator = enumerate(obj)
     for key, val in iterator:
-        if type(val) is dict and 'ref' in val:
+        if matcher(key, val):
             yield obj, key, val
         else:
-            for result in find_refs(val):
+            for result in deep_scan(val):
                 yield result
