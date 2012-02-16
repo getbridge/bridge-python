@@ -37,4 +37,3 @@ def find_refs(obj):
         else:
             for result in find_refs(val):
                 yield result
-

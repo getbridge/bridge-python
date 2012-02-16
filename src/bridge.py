@@ -144,4 +144,4 @@ class _System(Service):
 
     def remoteError(self, msg):
         self.bridge.log.error(msg)
-        self.bridge.emit('remoteError', msg)
+        self.bridge.emit('remote_error', msg)

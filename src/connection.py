@@ -56,6 +56,7 @@ class Connection(object):
         try:
             self.client_id, self.secret = msg.split('|')
         except:
+            self.bridge.emit('remote_error', 'Bad CONNECT.')
             self.close_handler()
             return
 
