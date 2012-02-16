@@ -37,16 +37,16 @@ class RemoteRef(Ref):
     def _rpc(self, pathchain, args):
         self._bridge._send(args, pathchain)
 
-def get_service(bridge, chain):
-    name = chain[SERVICE]
-    return bridge._children[name]
-
 class Service(object):
     def __init__(self, bridge):
         self.bridge = bridge
         self._ref = None
 
-class _RemoteService(Service):
+class RemoteService(Service):
     def __init__(self, bridge, ops):
         super().__init__(bridge)
         self._ops = ops
+
+def get_service(bridge, chain):
+    name = chain[SERVICE]
+    return bridge._children[name]

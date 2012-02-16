@@ -1,8 +1,7 @@
 import reference
 
-# obj -> function || Ref || [obj || JSON-type]
-
 def serialize(bridge, obj):
+    # obj -> function || Ref || [obj] || {str: obj} || atom
     pass
 
 def parse_server_cmd(bridge, obj):
@@ -12,16 +11,21 @@ def parse_server_cmd(bridge, obj):
     return service._ref, args
 
 def deserialize(bridge, obj):
-    for container, key, chain in find_refs(obj):
+    for container, key, ref in find_refs(obj):
+        chain = ref['ref']
         try:
             service = reference.get_service(chain)
-            container[key] = service._ref
         except:
-            # Create and store a remote service with a RemoteRef.
-            raise NotImplemented()
+            ops = ref.get('operations', [])
+            service = reference.RemoteService(bridge, ops)
+            service._ref = reference.RemoteRef(bridge, chain, service)
+            name = chain[reference.SERVICE]
+            bridge._children[name] = service
+        finally:
+            container[key] = service._ref
 
 def find_refs(obj):
-    # obj -> [obj], {str: obj}, atom
+    # obj -> [obj] || {str: obj} || atom
     iterator = []
     if type(obj) is list:
         iterator = enumerate(obj)

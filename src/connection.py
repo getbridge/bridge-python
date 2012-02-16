@@ -56,11 +56,12 @@ class Connection(object):
         try:
             self.client_id, self.secret = msg.split('|')
         except:
-            raise NotImplemented()
+            self.close_handler()
+            return
 
         self.on_message = self._replacement_on_message
-        self.bridge.log.info('Handshake complete.')
         self.bridge.connected = True
+        self.bridge.log.info('Handshake complete.')
         self.bridge.emit('ready')
 
     def _replacement_on_message(self, msg):
