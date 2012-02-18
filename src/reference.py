@@ -1,4 +1,5 @@
 import types
+import logging
 
 TYPE    = 0
 ROUTE   = 1
@@ -30,7 +31,7 @@ class LocalRef(Ref):
         try:
             return getattr(self._service, name)
         except AttributeError:
-            self._bridge.log.error('Local %s does not exist.' % (name))
+            logging.error('Local %s does not exist.' % (name))
 
     def __call__(self, args):
         func = self._service[self._chain[METHOD]]
@@ -50,7 +51,7 @@ class RemoteRef(Ref):
         if name in self._service._ops:
             return lambda args: self._rpc(self._chain + [name], args)
         else:
-            self._bridge.log.error('Remote %s does not exist.' % (name))
+            logging.error('Remote %s does not exist.' % (name))
             return lambda args: None
 
     def __call__(self, args):
@@ -71,7 +72,7 @@ class Service(object):
         if hasattr(self, 'callback'):
             self.callback(*args)
         else:
-            self.bridge.log.error('Invalid method call on %s.', self._ref)
+            logging.error('Invalid method call on %s.', self._ref)
 
 class RemoteService(Service):
     def __init__(self, bridge, ops):

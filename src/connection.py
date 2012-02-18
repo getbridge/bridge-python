@@ -1,6 +1,7 @@
 import sys
 import struct
 import socket
+import logging
 from collections import deque
 
 from tornado import ioloop, iostream
@@ -17,19 +18,20 @@ class Connection(object):
         self.establish_connection()
 
     def establish_connection(self):
-        self.bridge.log.debug('Connection.establish_connection called.')
+        print('Connection.establish_connection called.')
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
-        self.bridge.log.info('Connecting to (%s:%s).',
-                             self.bridge.host, self.bridge.port)
+        logging.info('Connecting to %s:%s.' %
+                             (self.bridge.host, self.bridge.port))
         server = (self.bridge.host, self.bridge.port)
         self.stream.connect(server, self.on_connect)
         if not self.loop.running():
             self.loop.start()
 
     def on_connect(self):
-        self.bridge.log.debug('Connecting.on_connect called.')
+        print('Connecting.on_connect called.')
+        self.bridge.connected = True
         msg = {
             'command': 'CONNECT',
             'data': {
@@ -44,32 +46,32 @@ class Connection(object):
         self.wait()
 
     def wait(self):
-        self.bridge.log.debug('Connecting.wait called: waiting...')
+        print('Connecting.wait called: waiting...')
         self.stream.read_bytes(4, self.msg_handler)
 
     def msg_handler(self, data):
-        self.bridge.log.debug('Connecting.msg_handler called: ' + data)
-        size = socket.ntohl(struct.unpack('>I', data)[0])
+        print(b'Connecting.msg_handler called: ' + data)
+        size = struct.unpack('>I', data)[0]
+        print('size = %s' % (size))
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
-        self.bridge.log.debug('Connecting.body_handler called: ' + data)
+        print(b'Connecting.body_handler called: ' + data)
         self.on_message(to_unicode(data))
         self.wait()
 
     def on_message(self, msg):
         try:
             self.client_id, self.secret = msg.split('|')
-            self.bridge.log.debug((self.client_id, self.secret))
+            print((self.client_id, self.secret))
         except:
             self.bridge.emit('remote_error', 'Bad CONNECT.')
-            self.bridge.log.error('Connecting.on_message: remote error!')
+            logging.error('Connecting.on_message: remote error!')
             self.close_handler()
             return
 
         self.on_message = self._replacement_on_message
-        self.bridge.connected = True
-        self.bridge.log.info('Handshake complete.')
+        logging.info('Handshake complete.')
         self.bridge.emit('ready')
 
     def _replacement_on_message(self, msg):
@@ -77,18 +79,18 @@ class Connection(object):
             obj = json_decode(msg)
             self.bridge._on_message(obj)
         except:
-            self.bridge.log.info('Dropping corrupted message.')
+            logging.info('Dropping corrupted message.')
 
     def close_handler(self):
         self.bridge.connected = False
         self.loop.stop()
-        self.bridge.log.error('Connection shutdown.')
+        logging.error('Connection shutdown.')
         self.bridge.emit('disconnect')
         if self.bridge.reconnect:
             self.reconnect()
 
     def reconnect(self):
-        self.bridge.log.info('Attempting reconnect.')
+        logging.info('Attempting reconnect.')
         if not self.bridge.connected and self.interval < 12800:
             self.establish_connection()
             self.interval *= 2
@@ -105,7 +107,7 @@ class Connection(object):
         buf = size + data
         if self.bridge.connected:
             self.stream.write(buf)
-            self.bridge.log.debug('Connection.send: ' + buf)
+            print(b'Connection.send: ' + buf)
         else:
             self.msg_queue.append(buf)
-            self.bridge.log.debug('Connection.send: (message queued).')
+            print('Connection.send: (message queued).')
