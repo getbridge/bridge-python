@@ -1,6 +1,9 @@
-import bridge
+#!/usr/bin/python
 
-bridge = bridge.Bridge()
+import bridge
+import logging
+
+bridge = bridge.Bridge(log_level=logging.DEBUG)
 
 class MsgHandler(bridge.Service):
     def msg(self, name, message):

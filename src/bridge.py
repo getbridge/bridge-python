@@ -29,7 +29,13 @@ class Bridge(object):
         self.port = kwargs.get('port', 8090)
         self.reconnect = kwargs.get('reconnect', True)
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(kwargs.get('log_level', logging.ERROR))
+        log_level = kwargs.get('log_level', logging.ERROR)
+        self.log.setLevel(log_level)
+        log_handler = logging.StreamHandler(log_level)
+        log_handler.setLevel(log_level)
+        fmt = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+        log_handler.setFormatter(fmt)
+        self.log.addHandler(log_handler)
         self.connected = False
         self._events = defaultdict(list)
         self._children = {
@@ -45,6 +51,7 @@ class Bridge(object):
 
         @param func A function of no arguments, called upon initialization.
         '''
+        self.log.debug('Bridge.ready called.')
         if not self.connected:
             self.on('ready', func)
         else:
@@ -58,6 +65,7 @@ class Bridge(object):
         @param func A callback triggered when the service has been published.
         @param func No arguments are passed to func.
         '''
+        self.log.debug('Bridge.publish_service called.')
         if name in self._children:
             self.log.error('Invalid service name: "%s".', name)
         else:
@@ -83,6 +91,7 @@ class Bridge(object):
         @param func A callback triggered after the handler is attached.
         @param func No arguments are passed to func.
         '''
+        self.log.debug('Bridge.join_channel called.')
         msg = {
             'command': 'JOINCHANNEL',
             'data': {
@@ -100,6 +109,7 @@ class Bridge(object):
         @param func A callback triggered once the service has been received.
         @param func func is given an opaque reference to a Service.
         '''
+        self.log.debug('Bridge.get_service called.')
         msg = {
             'command': 'GETOPS',
             'data': {
@@ -116,6 +126,7 @@ class Bridge(object):
         @param func A callback triggered once the channel has been received.
         @param func func is given an opaque reference and an error message.
         '''
+        self.log.debug('Bridge.get_channel called.')
         def _helper(service, error):
             if error:
                 func(None, error)
@@ -176,6 +187,7 @@ class Bridge(object):
         return self
 
     def _send(self, args, destination_ref):
+        self.log.debug('Bridge._send: ' + (args))
         msg = {
             'command': 'SEND',
             'data': {
@@ -188,6 +200,7 @@ class Bridge(object):
     def _on_message(self, obj):
         try:
             destination_ref, args = aux.parse_server_cmd(self, obj)
+            self.log.debug('Bridge._on_message: ' + (destination_ref._chain, args))
         except:
             self.log.error('Received bad message from server.')
             return
@@ -203,6 +216,7 @@ class _System(Service):
         self._ref = reference.LocalRef(bridge, chain, self)
 
     def hook_channel_handler(self, name, handler, func=None):
+        self.bridge.log.debug('_System.hook_channel_handler: ' + name)
         service = copy.copy(handler._service)
         chain = ['channel', name, 'channel:' + name]
         ref = reference.LocalRef(self, chain, service)
@@ -213,6 +227,7 @@ class _System(Service):
 
     def getservice(self, name, func):
         if name in self.bridge._children:
+            self.bridge.log.debug('_System.getservice: ' + name)
             func(self.bridge._children[name])
         else:
             func(None, 'Cannot find service %s.' % (name))

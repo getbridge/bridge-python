@@ -17,6 +17,7 @@ class Connection(object):
         self.establish_connection()
 
     def establish_connection(self):
+        self.bridge.log.debug('Connection.establish_connection called.')
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
@@ -28,6 +29,7 @@ class Connection(object):
             self.loop.start()
 
     def on_connect(self):
+        self.bridge.log.debug('Connecting.on_connect called.')
         msg = {
             'command': 'CONNECT',
             'data': {
@@ -41,22 +43,27 @@ class Connection(object):
             self.loop.add_callback(self.process_queue)
         self.wait()
 
-    def wait(self, func):
+    def wait(self):
+        self.bridge.log.debug('Connecting.wait called: waiting...')
         self.stream.read_bytes(4, self.msg_handler)
 
     def msg_handler(self, data):
+        self.bridge.log.debug('Connecting.msg_handler called: ' + data)
         size = socket.ntohl(struct.unpack('>I', data)[0])
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
+        self.bridge.log.debug('Connecting.body_handler called: ' + data)
         self.on_message(to_unicode(data))
         self.wait()
 
     def on_message(self, msg):
         try:
             self.client_id, self.secret = msg.split('|')
+            self.bridge.log.debug((self.client_id, self.secret))
         except:
             self.bridge.emit('remote_error', 'Bad CONNECT.')
+            self.bridge.log.error('Connecting.on_message: remote error!')
             self.close_handler()
             return
 
@@ -75,7 +82,7 @@ class Connection(object):
     def close_handler(self):
         self.bridge.connected = False
         self.loop.stop()
-        self.bridge.error('Connection shutdown.')
+        self.bridge.log.error('Connection shutdown.')
         self.bridge.emit('disconnect')
         if self.bridge.reconnect:
             self.reconnect()
@@ -98,5 +105,7 @@ class Connection(object):
         buf = size + data
         if self.bridge.connected:
             self.stream.write(buf)
+            self.bridge.log.debug('Connection.send: ' + buf)
         else:
             self.msg_queue.append(buf)
+            self.bridge.log.debug('Connection.send: (message queued).')

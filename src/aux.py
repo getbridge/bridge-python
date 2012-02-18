@@ -15,8 +15,7 @@ def serialize(bridge, obj):
         return obj
     
 def nonatomic_matcher(key, val):
-    return isinstance(val, reference.Ref) or
-                type(val) == types.FunctionType
+    return isinstance(val, reference.Ref) or type(val) == types.FunctionType
 
 def serialize_func(bridge, func):
     name = gen_guid()

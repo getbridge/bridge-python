@@ -1,6 +1,9 @@
-import bridge
+#!/usr/bin/python
 
-bridge = bridge.Bridge()
+import bridge
+import logging
+
+bridge = bridge.Bridge(log_level=logging.DEBUG)
 
 class ChatServer(bridge.Service):
     def join(self, name, handler, callback):
