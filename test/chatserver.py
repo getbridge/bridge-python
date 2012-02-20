@@ -1,16 +1,18 @@
 #!/usr/bin/python
 
-import bridge
 import logging
+from bridge import Bridge, Service
 
-bridge = bridge.Bridge(log_level=logging.DEBUG)
+bridge = Bridge(log_level=logging.DEBUG)
 
-class ChatServer(bridge.Service):
+class ChatServer(Service):
     def join(self, name, handler, callback):
         print('%s is joining the lobby.' % (name))
         bridge.join_channel('lobby', handler, callback)
 
 def start_server():
+    print("start_server called (from chatserver.py)")
+
     def on_client_join():
         print("Client joined the lobby.")
 

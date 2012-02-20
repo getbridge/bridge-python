@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
-import bridge
 import logging
+from bridge import Bridge, Service
 
-bridge = bridge.Bridge(log_level=logging.DEBUG)
+bridge = Bridge(log_level=logging.DEBUG)
 
-class MsgHandler(bridge.Service):
+class MsgHandler(Service):
     def msg(self, name, message):
         print(name + ': ' + message)
 
@@ -19,7 +19,7 @@ def start_chat(chat):
 lobby = None
 
 def get_channel(channel):
-    lobby = channel 
+    lobby = channel
 
 def send(message):
     lobby.msg('Foo', message)

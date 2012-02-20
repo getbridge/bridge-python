@@ -15,7 +15,6 @@ class Connection(object):
         self.msg_queue = deque()
         self.client_id = None
         self.secret = None
-        self.establish_connection()
 
     def establish_connection(self):
         print('Connection.establish_connection called.')

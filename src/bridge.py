@@ -44,6 +44,7 @@ class Bridge(object):
         print('Bridge.ready called.')
         if not self.connected:
             self.on('ready', func)
+            self._connection.establish_connection()
         else:
             func()
 
@@ -152,15 +153,17 @@ class Bridge(object):
         @param name The name of the event to listen for.
         @param func A callback triggered when this event is emitted.
         '''
+        logging.debug('Registering event %s.' % (name))
         self._events[name].append(func)
         return self
 
     def emit(self, name, *args):
-        '''Triggers an event. 
+        '''Triggers an event.
 
         @param name An arbitrary name of the event to be triggered.
         @param args A list of arguments to the event callback.
         '''
+        logging.debug('Emitting event %s(%s).' % (name, args))
         if name in self._events:
             for func in self._events[name]:
                 func(*args)
