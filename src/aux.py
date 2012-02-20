@@ -4,6 +4,9 @@ import string
 
 import reference
 
+class AuxError(Exception):
+    pass
+
 def serialize(bridge, obj):
     if type(obj) == types.FunctionType:
         return serialize_func(bridge, obj)
@@ -13,7 +16,7 @@ def serialize(bridge, obj):
         for container, key, val in deep_scan(obj, nonatomic_matcher):
             container[key] = serialize(val)
         return obj
-    
+
 def nonatomic_matcher(key, val):
     return isinstance(val, reference.Ref) or type(val) == types.FunctionType
 
@@ -32,8 +35,12 @@ def gen_guid():
     ])
 
 def parse_server_cmd(bridge, obj):
+    print('parse_server_cmd: obj = %s' % (obj))
     chain = obj['destination']['ref']
+    print('parse_server_cmd: chain = %s' % (chain))
     args = deserialize(bridge, obj['args'])
+    print('parse_server_cmd: args = %s' % (args))
+
     service = reference.get_service(bridge, chain)
     return service._ref, args
 
@@ -50,6 +57,7 @@ def deserialize(bridge, obj):
             bridge._children[name] = service
         finally:
             container[key] = service._ref
+    return obj
 
 def ref_matcher(key, val):
     return type(val) == dict and 'ref' in val
@@ -64,5 +72,5 @@ def deep_scan(obj, matcher):
         if matcher(key, val):
             yield obj, key, val
         else:
-            for result in deep_scan(val):
+            for result in deep_scan(val, matcher):
                 yield result
