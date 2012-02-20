@@ -81,7 +81,7 @@ class RemoteService(Service):
 
 def get_service(bridge, chain):
     name = chain[SERVICE]
-    return bridge._children[name]
+    return bridge._children.get(name)
 
 def is_method_ref(ref):
     return len(ref._chain) == 4

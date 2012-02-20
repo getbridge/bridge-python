@@ -25,6 +25,7 @@ def serialize_func(bridge, func):
     chain = ['client', bridge.get_client_id(), name]
     ref = reference.LocalRef(bridge, chain, reference.Service(bridge))
     service = ref._service
+    service._ref = ref
     service.callback = func
     bridge._children[name] = service
     return ref._to_dict()
@@ -35,13 +36,10 @@ def gen_guid():
     ])
 
 def parse_server_cmd(bridge, obj):
-    print('parse_server_cmd: obj = %s' % (obj))
     chain = obj['destination']['ref']
-    print('parse_server_cmd: chain = %s' % (chain))
     args = deserialize(bridge, obj['args'])
-    print('parse_server_cmd: args = %s' % (args))
-
     service = reference.get_service(bridge, chain)
+    print(bridge._children)
     return service._ref, args
 
 def deserialize(bridge, obj):
