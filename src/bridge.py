@@ -21,11 +21,13 @@ class Bridge(object):
         @param host Bridge host. Defaults to 'localhost'.
         @param port Bridge port. Defaults to 8090.
         @param reconnect Defaults to True to enable reconnects.
+        @param log_level Defaults to logging.ERROR.
         @var self.connected Connection state, initially False.
         '''
         self.host = kwargs.get('host', 'localhost')
         self.port = kwargs.get('port', 8090)
         self.reconnect = kwargs.get('reconnect', True)
+        logging.basicConfig(level=kwargs.get('log_level', logging.ERROR))
         self.connected = False
         self._events = defaultdict(list)
         self._children = {
@@ -101,14 +103,19 @@ class Bridge(object):
         @param func func is given an opaque reference to a Service.
         '''
         print('Bridge.get_service called.')
+        '''
         msg = {
             'command': 'GETOPS',
             'data': {
-                'name': 'channel:' + name,
+                'name': name,
                 'callback': aux.serialize(self, func),
             },
         }
         self._connection.send(msg)
+        '''
+        service = reference.RemoteService(None)
+        service._ref = reference.RemoteRef(self, ['named', name, name], service)
+        func(service._ref)
 
     def get_channel(self, name, func):
         '''Fetch a channel from Bridge.
@@ -118,6 +125,7 @@ class Bridge(object):
         @param func func is given an opaque reference and an error message.
         '''
         print('Bridge.get_channel called.')
+        '''
         def _helper(service, error):
             if error:
                 func(None, error)
@@ -133,6 +141,11 @@ class Bridge(object):
             },
         }
         self._connection.send(msg)
+        '''
+        service = reference.RemoteService(None)
+        chain = ['channel', name, 'channel:' + name]
+        service._ref = reference.RemoteRef(self, chain, service)
+        func(service._ref)
 
     def get_client_id(self):
         '''Finds the client ID of this node.
@@ -180,11 +193,11 @@ class Bridge(object):
         return self
 
     def _send(self, args, destination_ref):
-        print('Bridge._send: ' + (args))
+        print('Bridge._send: ', args)
         msg = {
             'command': 'SEND',
             'data': {
-                'args': aux.serialize(self, args),
+                'args': aux.serialize(self, list(args)),
                 'destination': destination_ref._to_dict(),
             },
         }
@@ -204,12 +217,11 @@ class Bridge(object):
             print(err)
             print("Unknown exception in Bridge._on_message.")
 
-
 Service = reference.Service
 
 class _System(Service):
     def __init__(self, bridge):
-        super().__init__(bridge)
+        self.bridge = bridge
         chain = ['named', 'system', 'system']
         self._ref = reference.LocalRef(bridge, chain, self)
 

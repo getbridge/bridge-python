@@ -8,22 +8,29 @@ class AuxError(Exception):
     pass
 
 def serialize(bridge, obj):
+    print("SERIALIZE: obj =", obj)
+
     if type(obj) == types.FunctionType:
         return serialize_func(bridge, obj)
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
+    elif isinstance(obj, reference.Service):
+        return obj._ref._to_dict()
     else:
         for container, key, val in deep_scan(obj, nonatomic_matcher):
-            container[key] = serialize(val)
+            print("DEEP SERIALIZE: <key, val, obj> =", key, val, obj)
+            container[key] = serialize(bridge, val)
         return obj
 
 def nonatomic_matcher(key, val):
-    return isinstance(val, reference.Ref) or type(val) == types.FunctionType
+    return isinstance(val, reference.Ref) or \
+           isinstance(val, reference.Service) or \
+           type(val) == types.FunctionType
 
 def serialize_func(bridge, func):
     name = gen_guid()
     chain = ['client', bridge.get_client_id(), name, 'callback']
-    ref = reference.LocalRef(bridge, chain, reference.Service(bridge))
+    ref = reference.LocalRef(bridge, chain, reference.Service())
     service = ref._service
     service._ref = ref
     service.callback = func
@@ -49,7 +56,7 @@ def deserialize(bridge, obj):
         service = reference.get_service(chain)
         if not service:
             ops = ref.get('operations', [])
-            service = reference.RemoteService(bridge, ops)
+            service = reference.RemoteService(ops)
             service._ref = reference.RemoteRef(bridge, chain, service)
             name = chain[reference.SERVICE]
             bridge._children[name] = service

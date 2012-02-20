@@ -12,7 +12,7 @@ class Ref(object):
         self._chain = chain
         self._service = service
 
-    def __call__(self, args):
+    def __call__(self, *args):
         raise NotImplemented()
 
     def _to_dict(self):
@@ -33,7 +33,7 @@ class LocalRef(Ref):
         except AttributeError:
             logging.error('Local %s does not exist.' % (name))
 
-    def __call__(self, args):
+    def __call__(self, *args):
         if is_method_ref(self):
             method = self._chain[METHOD]
         else:
@@ -48,24 +48,26 @@ class LocalRef(Ref):
 
 class RemoteRef(Ref):
     def __getattr__(self, name):
-        if name in self._service._ops:
-            return lambda args: self._rpc(self._chain + [name], args)
+        if not self._service._ops or name in self._service._ops:
+            return lambda *args: self._rpc(self._chain + [name], args)
         else:
             logging.error('Remote %s does not exist.' % (name))
-            return lambda args: None
+            return lambda *args: None
 
-    def __call__(self, args):
+    def __call__(self, *args):
         self._rpc(self._chain, args)
 
     def _rpc(self, pathchain, args):
-        self._bridge._send(args, pathchain)
+        old_chain = self._chain
+        self._chain = pathchain
+        self._bridge._send(args, self)
+        self._chain = old_chain
 
     def _get_ops(self):
         return self._service._ops
 
 class Service(object):
-    def __init__(self, bridge):
-        self.bridge = bridge
+    def __init__(self):
         self._ref = None
 
     def __call__(self, *args):
@@ -75,8 +77,7 @@ class Service(object):
             logging.error('Invalid method call on %s.', self._ref)
 
 class RemoteService(Service):
-    def __init__(self, bridge, ops):
-        super().__init__(bridge)
+    def __init__(self, ops):
         self._ops = ops
 
 def get_service(bridge, chain):

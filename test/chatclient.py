@@ -13,8 +13,8 @@ def start_client():
     bridge.get_service('chatserver', start_chat)
 
 def start_chat(chat):
-    print('Got chat service.')
-    chat.join('lobby', MsgHandler, get_channel)
+    print('Got chat service = ', chat)
+    chat.join('lobby', MsgHandler(), get_channel)
 
 lobby = None
 
