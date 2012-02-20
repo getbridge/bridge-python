@@ -23,7 +23,7 @@ class Connection(object):
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
         logging.info('Connecting to %s:%s.' %
-                             (self.bridge.host, self.bridge.port))
+                     (self.bridge.host, self.bridge.port))
         server = (self.bridge.host, self.bridge.port)
         self.stream.connect(server, self.on_connect)
         if not self.loop.running():

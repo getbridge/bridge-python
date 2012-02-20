@@ -24,7 +24,7 @@ class Bridge(object):
         @var self.connected Connection state, initially False.
         '''
         self.host = kwargs.get('host', 'localhost')
-        self.port = kwargs.get('port', 8090)
+        self.port = kwargs.get('port', 8091)
         self.reconnect = kwargs.get('reconnect', True)
         self.connected = False
         self._events = defaultdict(list)
