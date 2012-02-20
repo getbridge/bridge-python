@@ -34,17 +34,17 @@ class LocalRef(Ref):
             logging.error('Local %s does not exist.' % (name))
 
     def __call__(self, args):
-        func = self._service[self._chain[METHOD]]
+        if is_method_ref(self):
+            method = self._chain[METHOD]
+        else:
+            method = 'callback'
+        func = self._service[method]
         func(*args)
 
     def _get_ops(self):
-        if hasattr(self, '_ops'):
-            return self._ops
-
-        self._ops = [fn for fn in dir(self)
-                        if not fn.startswith('_') and
-                            type(getattr(self, fn)) == types.FunctionType]
-        return self._ops
+        return [fn for fn in dir(self._service)
+                    if not fn.startswith('_') and
+                        type(getattr(self, fn)) == types.FunctionType]
 
 class RemoteRef(Ref):
     def __getattr__(self, name):

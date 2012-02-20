@@ -22,7 +22,7 @@ def nonatomic_matcher(key, val):
 
 def serialize_func(bridge, func):
     name = gen_guid()
-    chain = ['client', bridge.get_client_id(), name]
+    chain = ['client', bridge.get_client_id(), name, 'callback']
     ref = reference.LocalRef(bridge, chain, reference.Service(bridge))
     service = ref._service
     service._ref = ref
@@ -45,16 +45,15 @@ def parse_server_cmd(bridge, obj):
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
         chain = ref['ref']
-        try:
-            service = reference.get_service(chain)
-        except:
+        print('deserialize: chain =', chain)
+        service = reference.get_service(chain)
+        if not service:
             ops = ref.get('operations', [])
             service = reference.RemoteService(bridge, ops)
             service._ref = reference.RemoteRef(bridge, chain, service)
             name = chain[reference.SERVICE]
             bridge._children[name] = service
-        finally:
-            container[key] = service._ref
+        container[key] = service._ref
     return obj
 
 def ref_matcher(key, val):

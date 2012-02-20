@@ -193,14 +193,17 @@ class Bridge(object):
     def _on_message(self, obj):
         try:
             destination_ref, args = aux.parse_server_cmd(self, obj)
-            print('Bridge._on_message: ' + (destination_ref._chain, args))
+            print('Bridge._on_message:', (destination_ref._chain, args))
             destination_ref(args)
         except aux.AuxError as err:
             print(err)
             logging.error('Received bad message from server.')
         except Exception as err:
+            raise Exception
+            raise Exception
             print(err)
             print("Unknown exception in Bridge._on_message.")
+
 
 Service = reference.Service
 
