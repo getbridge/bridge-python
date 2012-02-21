@@ -212,9 +212,7 @@ class Bridge(object):
             print(err)
             logging.error('Received bad message from server.')
         except Exception as err:
-            raise Exception
-            raise Exception
-            print(err)
+            print('', '*' * 40, '\n', err, '\n', '*' * 40)
             print("Unknown exception in Bridge._on_message.")
 
 Service = reference.Service

@@ -13,8 +13,8 @@ class ChatServer(Service):
 def start_server():
     print("start_server called (from chatserver.py)")
 
-    def on_client_join():
-        print("Client joined the lobby.")
+    def on_client_join(lobby):
+        print("Client joined lobby (%s)." % (lobby))
 
     bridge.publish_service('chatserver', ChatServer, on_client_join)
 

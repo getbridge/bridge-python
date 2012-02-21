@@ -33,13 +33,15 @@ class LocalRef(Ref):
             logging.error('Local %s does not exist.' % (name))
 
     def __call__(self, *args):
+        logging.debug("LocalRef::__call__: %s." % (args))
+
         if is_method_ref(self):
             method = self._chain[METHOD]
         else:
             method = 'callback'
-        func = self._service[method]
+        func = getattr(self._service, method)
         func(*args)
-
+ 
     def _get_ops(self):
         return [fn for fn in dir(self._service)
                     if not fn.startswith('_') and
@@ -54,6 +56,8 @@ class RemoteRef(Ref):
             return lambda *args: None
 
     def __call__(self, *args):
+        logging.debug("LocalRef::__call__: ", args)
+
         self._rpc(self._chain, args)
 
     def _rpc(self, pathchain, args):
