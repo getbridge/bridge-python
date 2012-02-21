@@ -12,8 +12,13 @@ def serialize(bridge, obj):
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
     elif is_service(obj):
-        # XXX: No ref available, make one!
-        return
+        # XXX: Duplicate code.
+        name = gen_guid()
+        chain = ['client', bridge.get_client_id(), name]
+        ref = reference.LocalRef(bridge, chain, obj)
+        obj._ref = ref
+        bridge._children[name] = obj
+        return ref._to_dict()
     else:
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
@@ -28,6 +33,7 @@ def atomic_matcher(key, val):
            is_service(val) or hasattr(val, '__call__')
 
 def serialize_func(bridge, func):
+    # XXX: Duplicate code.
     name = gen_guid()
     chain = ['client', bridge.get_client_id(), name, 'callback']
     ref = reference.LocalRef(bridge, chain, reference.Service())
