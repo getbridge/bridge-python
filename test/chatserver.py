@@ -16,6 +16,6 @@ def start_server():
     def on_client_join(lobby):
         print("Client joined lobby (%s)." % (lobby))
 
-    bridge.publish_service('chatserver', ChatServer, on_client_join)
+    bridge.publish_service('chatserver', ChatServer(), on_client_join)
 
 bridge.ready(start_server)

@@ -11,7 +11,7 @@ def serialize(bridge, obj):
         return serialize_func(bridge, obj)
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
-    elif is_service(obj):
+    elif isinstance(obj, reference.Service):
         # XXX: Duplicate code.
         name = gen_guid()
         chain = ['client', bridge.get_client_id(), name]
@@ -19,6 +19,9 @@ def serialize(bridge, obj):
         obj._ref = ref
         bridge._children[name] = obj
         return ref._to_dict()
+    elif type(obj) == type and issubclass(obj, reference.Service):
+        # XXX: Janky recursion, extra branches.
+        return serialize(bridge, obj())
     else:
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
@@ -52,17 +55,22 @@ def parse_server_cmd(bridge, obj):
     chain = obj['destination']['ref']
     args = deserialize(bridge, obj['args'])
     service = reference.get_service(bridge, chain)
-    print(bridge._children)
-    return service._ref, args
+
+    # XXX: This may just be a stopgap, not sure if righteous or not.
+    if chain[reference.ROUTE] == bridge.get_client_id():
+        reftype = reference.LocalRef
+    else:
+        reftype = reference.RemoteRef
+    return reftype(bridge, chain, service), args
 
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
         chain = ref['ref']
         print('deserialize: chain =', chain)
-        service = reference.get_service(chain)
+        service = reference.get_service(bridge, chain)
         if not service:
             ops = ref.get('operations', [])
-            service = reference.RemoteService(ops)
+            service = reference.Service()
             service._ref = reference.RemoteRef(bridge, chain, service)
             name = chain[reference.SERVICE]
             bridge._children[name] = service

@@ -103,17 +103,7 @@ class Bridge(object):
         @param func func is given an opaque reference to a Service.
         '''
         print('Bridge.get_service called.')
-        '''
-        msg = {
-            'command': 'GETOPS',
-            'data': {
-                'name': name,
-                'callback': aux.serialize(self, func),
-            },
-        }
-        self._connection.send(msg)
-        '''
-        service = reference.RemoteService(None)
+        service = reference.Service()
         service._ref = reference.RemoteRef(self, ['named', name, name], service)
         func(service._ref)
 
@@ -125,24 +115,7 @@ class Bridge(object):
         @param func func is given an opaque reference and an error message.
         '''
         print('Bridge.get_channel called.')
-        '''
-        def _helper(service, error):
-            if error:
-                func(None, error)
-            else:
-                chain = ['channel', name, 'channel:' + name]
-                func(reference.RemoteRef(self, chain, service), None)
-
-        msg = {
-            'command': 'GETOPS',
-            'data': {
-                'name': 'channel:' + name,
-                'callback': aux.serialize_func(self, _helper),
-            },
-        }
-        self._connection.send(msg)
-        '''
-        service = reference.RemoteService(None)
+        service = reference.Service()
         chain = ['channel', name, 'channel:' + name]
         service._ref = reference.RemoteRef(self, chain, service)
         func(service._ref)

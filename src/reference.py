@@ -49,15 +49,10 @@ class LocalRef(Ref):
 
 class RemoteRef(Ref):
     def __getattr__(self, name):
-        if not self._service._ops or name in self._service._ops:
-            return lambda *args: self._rpc(self._chain + [name], args)
-        else:
-            logging.error('Remote %s does not exist.' % (name))
-            return lambda *args: None
+        return lambda *args: self._rpc(self._chain + [name], args)
 
     def __call__(self, *args):
-        logging.debug("LocalRef::__call__: ", args)
-
+        print("RemoteRef::__call__: ", args)
         self._rpc(self._chain, args)
 
     def _rpc(self, pathchain, args):
@@ -67,7 +62,7 @@ class RemoteRef(Ref):
         self._chain = old_chain
 
     def _get_ops(self):
-        return self._service._ops
+        return [None]
 
 class Service(object):
     def __init__(self):
@@ -78,10 +73,6 @@ class Service(object):
             self.callback(*args)
         else:
             logging.error('Invalid method call on %s.', self._ref)
-
-class RemoteService(Service):
-    def __init__(self, ops):
-        self._ops = ops
 
 def get_service(bridge, chain):
     name = chain[SERVICE]
