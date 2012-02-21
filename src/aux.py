@@ -7,11 +7,12 @@ class AuxError(Exception):
     pass
 
 def serialize(bridge, obj):
-    if hasattr(obj, '__call__'):
-        return serialize_func(bridge, obj)
-    elif isinstance(obj, reference.Ref):
-        return obj._to_dict()
-    elif isinstance(obj, reference.Service):
+    print('SERIALIZE:', obj)
+
+    if isinstance(obj, reference.Service):
+        print('SERIALIZING SERVICE.')
+        if getattr(obj, '_ref', None):
+            return obj._ref._to_dict()
         # XXX: Duplicate code.
         name = gen_guid()
         chain = ['client', bridge.get_client_id(), name]
@@ -21,7 +22,12 @@ def serialize(bridge, obj):
         return ref._to_dict()
     elif type(obj) == type and issubclass(obj, reference.Service):
         # XXX: Janky recursion, extra branches.
+        print('DOING JANKY INSTANTIATION')
         return serialize(bridge, obj())
+    elif hasattr(obj, '__call__'):
+        return serialize_func(bridge, obj)
+    elif isinstance(obj, reference.Ref):
+        return obj._to_dict()
     else:
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
@@ -69,6 +75,8 @@ def deserialize(bridge, obj):
         print('deserialize: chain =', chain)
         service = reference.get_service(bridge, chain)
         if not service:
+            print('APPARENTLY THIS CHAIN ISNT LOCAL, HUH?')
+            input()
             ops = ref.get('operations', [])
             service = reference.Service()
             service._ref = reference.RemoteRef(bridge, chain, service)

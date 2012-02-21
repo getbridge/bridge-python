@@ -180,11 +180,16 @@ class Bridge(object):
         try:
             destination_ref, args = aux.parse_server_cmd(self, obj)
             print('Bridge._on_message:', (destination_ref._chain, args))
+            print('CURRENT CHILDREN STATE =', self._children)
+            print('ALL THIS OK?')
+            input()
             destination_ref(args)
         except aux.AuxError as err:
             print(err)
             logging.error('Received bad message from server.')
         except Exception as err:
+            import traceback
+            traceback.print_exc()
             print('', '*' * 40, '\n', err, '\n', '*' * 40)
             print("Unknown exception in Bridge._on_message.")
 
