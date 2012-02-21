@@ -7,24 +7,25 @@ class AuxError(Exception):
     pass
 
 def serialize(bridge, obj):
-    print("SERIALIZE: obj =", obj)
-
     if hasattr(obj, '__call__'):
         return serialize_func(bridge, obj)
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
-    elif isinstance(obj, reference.Service):
-        return obj._ref._to_dict()
+    elif is_service(obj):
+        # XXX: No ref available, make one!
+        return
     else:
-        for container, key, val in deep_scan(obj, nonatomic_matcher):
-            print("DEEP SERIALIZE: <key, val, obj> =", key, val, obj)
+        for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
         return obj
 
-def nonatomic_matcher(key, val):
+def is_service(obj):
+    return isinstance(obj, reference.Service) or \
+           issubclass(obj, reference.Service)
+
+def atomic_matcher(key, val):
     return isinstance(val, reference.Ref) or \
-           isinstance(val, reference.Service) or \
-           hasattr(val, '__call__')
+           is_service(val) or hasattr(val, '__call__')
 
 def serialize_func(bridge, func):
     name = gen_guid()
