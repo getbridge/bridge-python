@@ -44,7 +44,7 @@ def atomic_matcher(key, val):
 def serialize_func(bridge, func):
     # XXX: Duplicate code.
     name = gen_guid()
-    chain = ['client', bridge.get_client_id(), name] # , 'callback']
+    chain = ['client', bridge.get_client_id(), name] #, 'callback']
     ref = reference.LocalRef(bridge, chain, reference.Service())
     service = ref._service
     service._ref = ref

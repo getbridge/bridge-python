@@ -95,6 +95,25 @@ class Bridge(object):
         }
         self._connection.send(msg)
 
+    def leave_channel(self, name, handler, func):
+        '''Remove yourself from a channel.
+
+        @param name The name of the channel.
+        @param handler An opaque reference to a Service.
+        @param func A callback triggered after the handler is attached.
+        @param func No arguments are passed to func.
+        '''
+        print('Bridge.leave_channel called.')
+        msg = {
+            'command': 'LEAVECHANNEL',
+            'data': {
+                'name': name,
+                'handler': handler._to_dict(),
+                'callback': aux.serialize(self, func),
+            },
+        }
+        self._connection.send(msg)
+
     def get_service(self, name, func):
         '''Fetch a service from Bridge.
 

@@ -85,6 +85,6 @@ def is_method_ref(ref):
     return len(ref._chain) == 4
 
 def is_local(bridge, service, chain):
-    return isinstance(getattr(service, '_ref', None), LocalRef) or \
-           (chain[TYPE] == 'client' and \
-            chain[ROUTE] == bridge.get_client_id()) 
+    return isinstance(getattr(service, '_ref', None), LocalRef) # or \
+#           (chain[TYPE] == 'client' and \
+#            chain[ROUTE] == bridge.get_client_id()) 
