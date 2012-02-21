@@ -63,7 +63,7 @@ class RemoteRef(Ref):
         self._chain = old_chain
 
     def _get_ops(self):
-        return [None]
+        return []
 
 class Service(object):
     def __init__(self):

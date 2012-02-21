@@ -105,6 +105,7 @@ class Bridge(object):
         print('Bridge.get_service called.')
         service = reference.Service()
         service._ref = reference.RemoteRef(self, ['named', name, name], service)
+        self._children[name] = service
         func(service._ref)
 
     def get_channel(self, name, func):
@@ -118,6 +119,7 @@ class Bridge(object):
         service = reference.Service()
         chain = ['channel', name, 'channel:' + name]
         service._ref = reference.RemoteRef(self, chain, service)
+        self._children[chain[reference.SERVICE]] = service
         func(service._ref)
 
     def get_client_id(self):
