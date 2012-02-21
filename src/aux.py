@@ -63,7 +63,7 @@ def parse_server_cmd(bridge, obj):
     service = reference.get_service(bridge, chain)
 
     # XXX: This may just be a stopgap, not sure if righteous or not.
-    if chain[reference.ROUTE] == bridge.get_client_id():
+    if reference.is_local_service(service):
         reftype = reference.LocalRef
     else:
         reftype = reference.RemoteRef
@@ -75,6 +75,7 @@ def deserialize(bridge, obj):
         print('deserialize: chain =', chain)
         service = reference.get_service(bridge, chain)
         if not service:
+            print('DESERIALIZING chain =', chain)
             print('APPARENTLY THIS CHAIN ISNT LOCAL, HUH?')
             input()
             ops = ref.get('operations', [])

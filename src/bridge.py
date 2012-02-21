@@ -183,7 +183,8 @@ class Bridge(object):
             print('CURRENT CHILDREN STATE =', self._children)
             print('ALL THIS OK?')
             input()
-            destination_ref(args)
+            print('OK, STILL IN BRIDGE._ON_MESSAGE, ABOUT TO CALL;', destination_ref)
+            destination_ref(*args)
         except aux.AuxError as err:
             print(err)
             logging.error('Received bad message from server.')

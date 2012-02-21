@@ -33,7 +33,7 @@ class LocalRef(Ref):
             logging.error('Local %s does not exist.' % (name))
 
     def __call__(self, *args):
-        logging.debug("LocalRef::__call__: %s." % (args))
+        print("LocalRef::__call__:", args)
 
         if is_method_ref(self):
             method = self._chain[METHOD]
@@ -52,6 +52,7 @@ class RemoteRef(Ref):
         return lambda *args: self._rpc(self._chain + [name], args)
 
     def __call__(self, *args):
+        print('CALLING', self, self._chain)
         print("RemoteRef::__call__: ", args)
         self._rpc(self._chain, args)
 
@@ -80,3 +81,6 @@ def get_service(bridge, chain):
 
 def is_method_ref(ref):
     return len(ref._chain) == 4
+
+def is_local_service(service):
+    return isinstance(getattr(service, '_ref', None), LocalRef)
