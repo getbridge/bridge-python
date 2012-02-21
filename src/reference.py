@@ -1,4 +1,3 @@
-import types
 import logging
 
 TYPE    = 0
@@ -44,7 +43,7 @@ class LocalRef(Ref):
     def _get_ops(self):
         return [fn for fn in dir(self._service)
                     if not fn.startswith('_') and
-                        type(getattr(self, fn)) == types.FunctionType]
+                        hasattr(getattr(self, fn), '__call__')]
 
 class RemoteRef(Ref):
     def __getattr__(self, name):

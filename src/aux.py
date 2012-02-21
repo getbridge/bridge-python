@@ -1,4 +1,3 @@
-import types
 import random
 import string
 
@@ -10,7 +9,7 @@ class AuxError(Exception):
 def serialize(bridge, obj):
     print("SERIALIZE: obj =", obj)
 
-    if type(obj) == types.FunctionType:
+    if hasattr(obj, '__call__'):
         return serialize_func(bridge, obj)
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
@@ -25,7 +24,7 @@ def serialize(bridge, obj):
 def nonatomic_matcher(key, val):
     return isinstance(val, reference.Ref) or \
            isinstance(val, reference.Service) or \
-           type(val) == types.FunctionType
+           hasattr(val, '__call__')
 
 def serialize_func(bridge, func):
     name = gen_guid()
