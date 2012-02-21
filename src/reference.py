@@ -77,10 +77,14 @@ class Service(object):
 
 def get_service(bridge, chain):
     name = chain[SERVICE]
-    return bridge._children.get(name)
+    print('IN GET-SERVICE, TRYING NAME=', name)
+    print('--> _children[name] = ', bridge._children.get(name))
+    return bridge._children.get(name, False)
 
 def is_method_ref(ref):
     return len(ref._chain) == 4
 
-def is_local_service(service):
-    return isinstance(getattr(service, '_ref', None), LocalRef)
+def is_local(bridge, service, chain):
+    return isinstance(getattr(service, '_ref', None), LocalRef) or \
+           (chain[TYPE] == 'client' and \
+            chain[ROUTE] == bridge.get_client_id()) 

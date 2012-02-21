@@ -44,7 +44,7 @@ def atomic_matcher(key, val):
 def serialize_func(bridge, func):
     # XXX: Duplicate code.
     name = gen_guid()
-    chain = ['client', bridge.get_client_id(), name, 'callback']
+    chain = ['client', bridge.get_client_id(), name] # , 'callback']
     ref = reference.LocalRef(bridge, chain, reference.Service())
     service = ref._service
     service._ref = ref
@@ -63,7 +63,7 @@ def parse_server_cmd(bridge, obj):
     service = reference.get_service(bridge, chain)
 
     # XXX: This may just be a stopgap, not sure if righteous or not.
-    if reference.is_local_service(service):
+    if reference.is_local(bridge, service, chain):
         reftype = reference.LocalRef
     else:
         reftype = reference.RemoteRef
@@ -74,7 +74,7 @@ def deserialize(bridge, obj):
         chain = ref['ref']
         print('deserialize: chain =', chain)
         service = reference.get_service(bridge, chain)
-        if not service:
+        if False == service:
             print('DESERIALIZING chain =', chain)
             print('APPARENTLY THIS CHAIN ISNT LOCAL, HUH?')
             input()

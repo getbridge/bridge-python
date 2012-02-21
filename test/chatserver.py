@@ -7,7 +7,7 @@ bridge = Bridge(log_level=logging.DEBUG)
 
 class ChatServer(Service):
     def join(self, name, handler, callback):
-        print('%s is joining the lobby.' % (name))
+        print('Got join request for %s.' % (name))
         bridge.join_channel('lobby', handler, callback)
 
 def start_server():
