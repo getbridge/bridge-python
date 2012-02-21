@@ -16,6 +16,7 @@ class LobbyHandler(object):
 
     def __call__(self, channel):
         self.lobby = channel
+        self.send('Hello, world.')
 
     def send(self, message):
         self.lobby.msg(self.name, message)

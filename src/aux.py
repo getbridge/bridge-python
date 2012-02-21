@@ -26,7 +26,7 @@ def serialize(bridge, obj):
 
 def is_service(obj):
     return isinstance(obj, reference.Service) or \
-           issubclass(obj, reference.Service)
+           type(obj) == type and issubclass(obj, reference.Service)
 
 def atomic_matcher(key, val):
     return isinstance(val, reference.Ref) or \
