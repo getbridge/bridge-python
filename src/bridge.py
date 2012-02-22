@@ -139,7 +139,7 @@ class Bridge(object):
         return ref
 
     def get_client_id(self):
-        '''Finds the client ID of this node.
+        '''Returns the client ID of this node.
 
         @return None || str
         '''
@@ -154,34 +154,29 @@ class Bridge(object):
         reconnect/0
         remote_error/1 (msg)
 
-        @param name The name of the event to listen for.
-        @param func A callback triggered when this event is emitted.
+        @param name The name of the event.
+        @param func Called when this event is emitted.
         '''
-        logging.debug('Registering event %s.' % (name))
+        logging.debug('Registering handler for event %s.' % (name))
         self._events[name].append(func)
-        return self
 
     def emit(self, name, *args):
         '''Triggers an event.
 
-        @param name An arbitrary name of the event to be triggered.
+        @param name The name of the event to trigger.
         @param args A list of arguments to the event callback.
         '''
         logging.debug('Emitting event %s(%s).' % (name, args))
         if name in self._events:
             for func in self._events[name]:
                 func(*args)
-        return self
 
-    def remove_event(self, name, func):
-        '''Removes a callback for the given event name.
+    def clear_event(self, name):
+        '''Removes the callbacks for the given event.
 
         @param name Name of an event.
-        @param func The function object to be removed as an event handler.
         '''
-        if name in self._events:
-            self._events[name].remove(func)
-        return self
+        self._events[name] = []
 
     def _send(self, args, chain_dict):
         print('Bridge._send: ', args)
