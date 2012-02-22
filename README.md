@@ -1,12 +1,6 @@
 bridge-python
 =============
 
-Ref Structures
--> {Local,Remote}Ref should remain distinct.
--> bridge.children should point to an instance of Ref.
--> LocalRefs should have attached services.
--> RemoteRefs serve only as proxies.
-
 0. To Do
 
 	- Docs

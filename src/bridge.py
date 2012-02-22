@@ -1,4 +1,5 @@
 import logging
+import traceback
 from collections import defaultdict
 
 import aux
@@ -191,19 +192,18 @@ class Bridge(object):
 
     def _on_message(self, obj):
         try:
-            destination_ref, args = aux.parse_server_cmd(self, obj)
-            print('Bridge._on_message:', (destination_ref._chain, args))
+            ref, args = aux.parse_server_cmd(self, obj)
+            print('Bridge._on_message:', (ref._chain, args))
             print('CURRENT CHILDREN STATE =', self._children)
-            print('OK, STILL IN BRIDGE._ON_MESSAGE, ABOUT TO CALL;', destination_ref)
+            print('STILL IN BRIDGE._ON_MESSAGE, ABOUT TO CALL;', ref)
             destination_ref(*args)
         except aux.AuxError as err:
-            print(err)
+            logging.error(err)
             logging.error('Received bad message from server.')
         except Exception as err:
-            import traceback
             traceback.print_exc()
             print('', '*' * 40, '\n', err, '\n', '*' * 40)
-            print("Unknown exception in Bridge._on_message.")
+            logging.error("Unknown exception in Bridge._on_message.")
 
 class _System(object):
     def __init__(self, bridge):

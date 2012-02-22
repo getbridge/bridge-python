@@ -17,7 +17,6 @@ class Connection(object):
         self.secret = None
 
     def establish_connection(self):
-        print('Connection.establish_connection called.')
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
@@ -29,7 +28,6 @@ class Connection(object):
             self.loop.start()
 
     def on_connect(self):
-        print('Conneciton.on_connect called.')
         self.bridge.connected = True
         msg = {
             'command': 'CONNECT',
@@ -45,13 +43,11 @@ class Connection(object):
         self.wait()
 
     def wait(self):
-        print('Connection.wait called: waiting...')
         self.stream.read_bytes(4, self.msg_handler)
 
     def msg_handler(self, data):
-        print(b'Connection.msg_handler called: ' + data)
         size = struct.unpack('>I', data)[0]
-        print('size = %s' % (size))
+        print('Connection.msg_handler: size = %d.' % (size))
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
@@ -63,15 +59,14 @@ class Connection(object):
         try:
             self.client_id, self.secret = msg.split('|')
             print((self.client_id, self.secret))
+            logging.info('Bridge handshake complete.')
+            self.on_message = self._replacement_on_message
+            self.bridge.emit('ready')
         except:
+            # XXX: Are we supposed to just route messages normally?
             self.bridge.emit('remote_error', 'Bad CONNECT.')
             logging.error('Connection.on_message: remote error!')
             self.close_handler()
-            return
-
-        self.on_message = self._replacement_on_message
-        logging.info('Handshake complete.')
-        self.bridge.emit('ready')
 
     def _replacement_on_message(self, msg):
         try:
