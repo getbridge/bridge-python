@@ -5,37 +5,33 @@ ROUTE   = 1
 SERVICE = 2
 METHOD  = 3
 
+def ref_to_dict(chain, ops):
+    val = {
+        'ref': chain,
+    }
+    if not is_method_chain(chain):
+        val['operations'] = ops
+    return val
+
 class Ref(object):
-    def __init__(self, bridge, chain, service):
-        self._bridge = bridge
+    def _to_dict(self):
+        return ref_to_dict(self._chain, self._get_ops())
+
+class LocalRef(Ref):
+    def __init__(self, chain, service):
         self._chain = chain
         self._service = service
 
-    def __call__(self, *args):
-        raise NotImplemented()
-
-    def _to_dict(self):
-        val = {
-            'ref': self._chain,
-        }
-        if is_method_ref(self):
-            val['operations'] = self._get_ops()
-        return val
-
-    def _get_ops(self):
-        raise NotImplemented()
-
-class LocalRef(Ref):
     def __getattr__(self, name):
+        print('-> LocalRef', self._chain, '__getattr__', name)
         try:
             return getattr(self._service, name)
         except AttributeError:
-            logging.error('Local %s does not exist.' % (name))
+            logging.error('Invalid call to local::%s.' % (name))
 
     def __call__(self, *args):
-        print("LocalRef::__call__:", args)
-
-        if is_method_ref(self):
+        print('-> LocalRef', self._chain, '__call__', args)
+        if is_method_chain(self._chain):
             method = self._chain[METHOD]
         else:
             method = 'callback'
@@ -48,43 +44,29 @@ class LocalRef(Ref):
                         hasattr(getattr(self, fn), '__call__')]
 
 class RemoteRef(Ref):
+    def __init__(self, chain, bridge):
+        self._chain = chain
+        self._bridge = bridge
+
     def __getattr__(self, name):
+        print('-> RemoteRef', self._chain, '__getattr__', name)
         return lambda *args: self._rpc(self._chain + [name], args)
 
     def __call__(self, *args):
-        print('CALLING', self, self._chain)
-        print("RemoteRef::__call__: ", args)
+        print('-> RemoteRef', self._chain, '__call__', args)
         self._rpc(self._chain, args)
 
-    def _rpc(self, pathchain, args):
-        old_chain = self._chain
-        self._chain = pathchain
-        self._bridge._send(args, self)
-        self._chain = old_chain
+    def _rpc(self, chain, args):
+        self._bridge._send(args, ref_to_dict(chain, self._get_ops()))
 
     def _get_ops(self):
         return []
 
-class Service(object):
-    def __init__(self):
-        self._ref = None
-
-    def __call__(self, *args):
-        if hasattr(self, 'callback'):
-            self.callback(*args)
-        else:
-            logging.error('Invalid method call on %s.', self._ref)
-
 def get_service(bridge, chain):
+    print('IN GET-SERVICE, TRYING NAME =', name)
     name = chain[SERVICE]
-    print('IN GET-SERVICE, TRYING NAME=', name)
-    print('--> _children[name] = ', bridge._children.get(name))
+    print('---> _children[name] = ', bridge._children.get(name))
     return bridge._children.get(name, False)
 
-def is_method_ref(ref):
-    return len(ref._chain) == 4
-
-def is_local(bridge, service, chain):
-    return isinstance(getattr(service, '_ref', None), LocalRef) # or \
-#           (chain[TYPE] == 'client' and \
-#            chain[ROUTE] == bridge.get_client_id()) 
+def is_method_chain(chain):
+    return len(chain) == 4

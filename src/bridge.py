@@ -193,13 +193,13 @@ class Bridge(object):
             self._events[name].remove(func)
         return self
 
-    def _send(self, args, destination_ref):
+    def _send(self, args, chain_dict):
         print('Bridge._send: ', args)
         msg = {
             'command': 'SEND',
             'data': {
                 'args': aux.serialize(self, list(args)),
-                'destination': destination_ref._to_dict(),
+                'destination': chain_dict,
             },
         }
         self._connection.send(msg)
@@ -209,8 +209,6 @@ class Bridge(object):
             destination_ref, args = aux.parse_server_cmd(self, obj)
             print('Bridge._on_message:', (destination_ref._chain, args))
             print('CURRENT CHILDREN STATE =', self._children)
-            print('ALL THIS OK?')
-            input()
             print('OK, STILL IN BRIDGE._ON_MESSAGE, ABOUT TO CALL;', destination_ref)
             destination_ref(*args)
         except aux.AuxError as err:
