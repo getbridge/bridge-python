@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 import logging
-from bridge import Bridge, Service
+from bridge import Bridge 
 
 bridge = Bridge(log_level=logging.DEBUG)
 
-class MsgHandler(Service):
+class MsgHandler(object):
     def msg(self, name, message):
         print(name + ': ' + message)
 
@@ -14,9 +14,9 @@ class LobbyHandler(object):
         self.name = name
         self.lobby = None
 
-    def __call__(self, *args):
+    def __call__(self, channel):
         print("==> LobbyHandler:", args)
-        self.lobby = args[0] # channel
+        self.lobby = channel # args[0]
         self.send('Hello, world.')
 
     def send(self, message):

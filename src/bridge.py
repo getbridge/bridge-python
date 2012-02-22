@@ -220,13 +220,10 @@ class Bridge(object):
             print('', '*' * 40, '\n', err, '\n', '*' * 40)
             print("Unknown exception in Bridge._on_message.")
 
-Service = reference.Service
-
-class _System(Service):
+class _System(object):
     def __init__(self, bridge):
         self.bridge = bridge
         chain = ['named', 'system', 'system']
-        self._ref = reference.LocalRef(bridge, chain, self)
 
     def hook_channel_handler(self, name, handler, func=None):
         logging.debug('_System.hook_channel_handler: ' + name)

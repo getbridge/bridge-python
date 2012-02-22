@@ -20,6 +20,9 @@ class Ref(object):
 class LocalRef(Ref):
     def __init__(self, chain, service):
         self._chain = chain
+        if type(service) == type:
+            logging.warn('Instantiating provided service.')
+            service = service()
         self._service = service
 
     def __getattr__(self, name):
