@@ -29,7 +29,7 @@ class Connection(object):
             self.loop.start()
 
     def on_connect(self):
-        print('Connecting.on_connect called.')
+        print('Conneciton.on_connect called.')
         self.bridge.connected = True
         msg = {
             'command': 'CONNECT',
@@ -45,17 +45,17 @@ class Connection(object):
         self.wait()
 
     def wait(self):
-        print('Connecting.wait called: waiting...')
+        print('Connection.wait called: waiting...')
         self.stream.read_bytes(4, self.msg_handler)
 
     def msg_handler(self, data):
-        print(b'Connecting.msg_handler called: ' + data)
+        print(b'Connection.msg_handler called: ' + data)
         size = struct.unpack('>I', data)[0]
         print('size = %s' % (size))
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
-        print(b'Connecting.body_handler called: ' + data)
+        print(b'Connection.body_handler called: ' + data)
         self.on_message(to_unicode(data))
         self.wait()
 
@@ -65,7 +65,7 @@ class Connection(object):
             print((self.client_id, self.secret))
         except:
             self.bridge.emit('remote_error', 'Bad CONNECT.')
-            logging.error('Connecting.on_message: remote error!')
+            logging.error('Connection.on_message: remote error!')
             self.close_handler()
             return
 

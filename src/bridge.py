@@ -1,4 +1,3 @@
-import copy
 import logging
 from collections import defaultdict
 
@@ -12,7 +11,7 @@ A Python API for bridge clients.
 '''
 
 class Bridge(object):
-    '''Encapsulates all interactions with the Bridge server.'''
+    '''Interface to the Bridge server.'''
 
     def __init__(self, **kwargs):
         '''Initialize Bridge.
@@ -30,20 +29,21 @@ class Bridge(object):
         logging.basicConfig(level=kwargs.get('log_level', logging.ERROR))
         self.connected = False
         self._events = defaultdict(list)
+        sysobj = _System(self)
+        chain = ['named', 'system', 'system']
         self._children = {
-            'system': _System(self)
+            'system': reference.LocalRef(chain, sysobj),
         }
         self._connection = connection.Connection(self)
 
     def ready(self, func):
         '''Entry point into the Bridge event loop.
 
-        func is called when this node has established a connection to a
-        Bridge instance.
+        func is called when this node has established a connection to
+        a Bridge instance.
 
-        @param func A function of no arguments, called upon initialization.
+        @param func Called (with no arguments) after initialization.
         '''
-        print('Bridge.ready called.')
         if not self.connected:
             self.on('ready', func)
             self._connection.establish_connection()
@@ -54,18 +54,16 @@ class Bridge(object):
         '''Publish a service to Bridge.
 
         @param name The name of the service.
-        @param service Some instance of Service.
-        @param func A callback triggered when the service has been published.
-        @param func No arguments are passed to func.
+        @param service Any class with a default constructor, or any
+        instance object. 
+        @param func Called (with no arguments) when the service has
+        been published.
         '''
-        print('Bridge.publish_service called.')
         if name in self._children:
-            logging.error('Invalid service name: "%s".', name)
+            logging.error('Invalid service name: "%s".' % (name))
         else:
-            self._children[name] = service
             chain = ['named', name, name]
-            ref = reference.LocalRef(self, chain, service)
-            service._ref = ref
+            self._children[name] = reference.LocalRef(chain, service)
             msg = {
                 'command': 'JOINWORKERPOOL',
                 'data': {
@@ -74,17 +72,15 @@ class Bridge(object):
                 },
             }
             self._connection.send(msg)
-            return ref
 
     def join_channel(self, name, handler, func):
         '''Register a handler with a channel.
 
         @param name The name of the channel.
-        @param handler An opaque reference to a Service.
-        @param func A callback triggered after the handler is attached.
-        @param func No arguments are passed to func.
+        @param handler An opaque reference to a channel.
+        @param func Called (with no arguments) after the handler has
+        been attached to the channel.
         '''
-        print('Bridge.join_channel called.')
         msg = {
             'command': 'JOINCHANNEL',
             'data': {
@@ -99,11 +95,10 @@ class Bridge(object):
         '''Remove yourself from a channel.
 
         @param name The name of the channel.
-        @param handler An opaque reference to a Service.
-        @param func A callback triggered after the handler is attached.
-        @param func No arguments are passed to func.
+        @param handler An opaque reference to a channel.
+        @param func Called (with no arguments) after the handler has
+        been attached to the channel.
         '''
-        print('Bridge.leave_channel called.')
         msg = {
             'command': 'LEAVECHANNEL',
             'data': {
@@ -114,27 +109,22 @@ class Bridge(object):
         }
         self._connection.send(msg)
 
-    def get_service(self, name, func):
+    def get_service(self, name):
         '''Fetch a service from Bridge.
 
-        @param name The name of the requested service.
-        @param func A callback triggered once the service has been received.
-        @param func func is given an opaque reference to a Service.
+        @param name The service name.
+        @return An opaque reference to a service.
         '''
-        print('Bridge.get_service called.')
-        service = reference.Service()
-        service._ref = reference.RemoteRef(self, ['named', name, name], service)
-        self._children[name] = service
-        func(service._ref)
+        ref = reference.RemoteRef(['named', name, name], self)
+        self._children[name] = ref
+        return ref
 
     def get_channel(self, name, func):
         '''Fetch a channel from Bridge.
 
-        @param name The name of the requested channel.
-        @param func A callback triggered once the channel has been received.
-        @param func func is given an opaque reference and an error message.
+        @param name The name of the channel.
+        @return An opaque reference to a channel.
         '''
-        print('Bridge.get_channel called.')
         msg = {        
             'command': 'GETCHANNEL',
             'data': {
@@ -142,11 +132,11 @@ class Bridge(object):
             },
         }
         self._connection.send(msg)
-        service = reference.Service()
-        chain = ['channel', name, 'channel:' + name]
-        service._ref = reference.RemoteRef(self, chain, service)
-        self._children[chain[reference.SERVICE]] = service
-        func(service._ref)
+        service = 'channel:' + name
+        chain = ['channel', name, service]
+        ref = reference.RemoteRef(chain, self)
+        self._children[service] = ref
+        return ref
 
     def get_client_id(self):
         '''Finds the client ID of this node.
@@ -222,24 +212,24 @@ class Bridge(object):
 
 class _System(object):
     def __init__(self, bridge):
-        self.bridge = bridge
-        chain = ['named', 'system', 'system']
+        self._bridge = bridge
 
     def hook_channel_handler(self, name, handler, func=None):
-        logging.debug('_System.hook_channel_handler: ' + name)
-        service = copy.copy(handler._service)
+        print('_System.hook_channel_handler: ' + name)
         chain = ['channel', name, 'channel:' + name]
-        ref = reference.LocalRef(self, chain, service)
-        service._ref = ref
-        self.bridge._children['channel:' + name] = service
+        ref = reference.LocalRef(chain, handler._service)
+        self._bridge._children['channel:' + name] = ref
         if func:
+            print('hook_channel_handler, func provided!')
             func(ref, name)
 
     def getservice(self, name, func):
+        print('_System.getservice called!', name)
         if name in self.bridge._children:
-            logging.debug('_System.getservice: ' + name)
+            print('Service found.')
             func(self.bridge._children[name])
         else:
+            print('Service not found.')
             func(None, 'Cannot find service %s.' % (name))
 
     def remoteError(self, msg):
