@@ -22,13 +22,9 @@ class LobbyHandler(object):
     def send(self, message):
         self.lobby.msg(self.name, message)
 
-lobby = LobbyHandler('Vedant')
-
 def start_client():
-    bridge.get_service('chatserver', start_chat)
-
-def start_chat(chat):
-    print('Got chat service.')
+    lobby = LobbyHandler('Vedant')
+    chat = bridge.get_service('chatserver')
     chat.join('lobby', MsgHandler, lobby)
 
 bridge.ready(start_client)
