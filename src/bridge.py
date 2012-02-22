@@ -135,6 +135,13 @@ class Bridge(object):
         @param func func is given an opaque reference and an error message.
         '''
         print('Bridge.get_channel called.')
+        msg = {        
+            'command': 'GETCHANNEL',
+            'data': {
+                'name': name,
+            },
+        }
+        self._connection.send(msg)
         service = reference.Service()
         chain = ['channel', name, 'channel:' + name]
         service._ref = reference.RemoteRef(self, chain, service)
