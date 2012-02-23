@@ -6,6 +6,7 @@ from collections import deque
 
 from tornado import ioloop, iostream
 from tornado.escape import json_encode, json_decode, utf8, to_unicode
+from tornado.httpclient import HTTPClient, HTTPError
 
 class Connection(object):
     def __init__(self, bridge, interval=400):
@@ -17,6 +18,21 @@ class Connection(object):
         self.secret = None
 
     def establish_connection(self):
+        if not (self.bridge.host and self.bridge.port):
+            client = HTTPClient()
+            try:
+                res = client.fetch('%sredirect/%s' % (
+                    self.redirector, self.api_key
+                ))
+                body = json_decode(res.body)
+                self.bridge.host = body.get('bridge_host')
+                self.bridge.port = int(body.get('bridge_port'))
+                res.close()
+            except: 
+                logging.error('Could not contact redirector. Fatal.')
+                res.close()
+                return
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
@@ -33,6 +49,7 @@ class Connection(object):
             'command': 'CONNECT',
             'data': {
                 'session': [self.client_id, self.secret],
+                'api_key': self.bridge.api_key
             },
         }
         self.send(msg)

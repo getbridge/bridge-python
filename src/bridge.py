@@ -18,17 +18,30 @@ class Bridge(object):
         '''Initialize Bridge.
 
         @param kwargs Specify optional config information.
-        @param host Bridge host. Defaults to 'localhost'.
-        @param port Bridge port. Defaults to 8090.
+        @param api_key Bridge cloud api key. No default.
+        @param redirector Bridge redirector. Defaults to
+        http://localhost/.
+        @param host Bridge host. No default. Set a value to disable
+        redirector based connect.
+        @param port Bridge port. No default. Set a value to disable
+        redirector based connect.
         @param reconnect Defaults to True to enable reconnects.
         @param log_level Defaults to logging.ERROR.
-        @var self.connected Connection state, initially False.
+        @var self.connected Connection state. Initially False. Set to
+        True when a connection is established.
         '''
-        self.host = kwargs.get('host', 'localhost')
-        self.port = kwargs.get('port', 8090)
+        self.api_key = kwargs.get('api_key')
+        self.redirector = kwargs.get('redirector', 'http://localhost/')
+        self.host = kwargs.get('host')
+        self.port = kwargs.get('port')
         self.reconnect = kwargs.get('reconnect', True)
-        logging.basicConfig(level=kwargs.get('log_level', logging.ERROR))
+        level = kwargs.get('log_level', logging.ERROR)
+        logging.basicConfig(level=level)
         self.connected = False
+
+        if not self.redirector.endswith('/'):
+            self.redirector += '/'
+
         self._events = defaultdict(list)
         sysobj = _System(self)
         chain = ['named', 'system', 'system']

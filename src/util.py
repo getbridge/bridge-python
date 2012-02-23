@@ -3,7 +3,7 @@ import string
 
 import reference
 
-class AuxError(Exception):
+class UtilError(Exception):
     pass
 
 def serialize(bridge, obj):
