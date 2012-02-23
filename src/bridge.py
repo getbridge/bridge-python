@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-import aux
+import util
 import connection
 import reference
 
@@ -69,7 +69,7 @@ class Bridge(object):
                 'command': 'JOINWORKERPOOL',
                 'data': {
                     'name': name,
-                    'callback': aux.serialize(self, func),
+                    'callback': util.serialize(self, func),
                 },
             }
             self._connection.send(msg)
@@ -87,7 +87,7 @@ class Bridge(object):
             'data': {
                 'name': name,
                 'handler': handler._to_dict(),
-                'callback': aux.serialize(self, func),
+                'callback': util.serialize(self, func),
             },
         }
         self._connection.send(msg)
@@ -105,7 +105,7 @@ class Bridge(object):
             'data': {
                 'name': name,
                 'handler': handler._to_dict(),
-                'callback': aux.serialize(self, func),
+                'callback': util.serialize(self, func),
             },
         }
         self._connection.send(msg)
@@ -184,7 +184,7 @@ class Bridge(object):
         msg = {
             'command': 'SEND',
             'data': {
-                'args': aux.serialize(self, list(args)),
+                'args': util.serialize(self, list(args)),
                 'destination': chain_dict,
             },
         }
@@ -192,12 +192,12 @@ class Bridge(object):
 
     def _on_message(self, obj):
         try:
-            ref, args = aux.parse_server_cmd(self, obj)
+            ref, args = util.parse_server_cmd(self, obj)
             print('Bridge._on_message:', (ref._chain, args))
             print('CURRENT CHILDREN STATE =', self._children)
             print('STILL IN BRIDGE._ON_MESSAGE, ABOUT TO CALL;', ref)
             destination_ref(*args)
-        except aux.AuxError as err:
+        except util.AuxError as err:
             logging.error(err)
             logging.error('Received bad message from server.')
         except Exception as err:
