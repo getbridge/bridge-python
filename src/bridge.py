@@ -61,7 +61,7 @@ class Bridge(object):
             self.on('ready', func)
             self._connection.establish_connection()
         else:
-            func()
+            util.wrapped_exec(func)
 
     def publish_service(self, name, service, func):
         '''Publish a service to Bridge.
@@ -181,7 +181,7 @@ class Bridge(object):
         logging.debug('Emitting event %s(%s).' % (name, args))
         if name in self._events:
             for func in self._events[name]:
-                func(*args)
+                util.wrapped_exec(func, 'Bridge.emit', *args)
 
     def clear_event(self, name):
         '''Removes the callbacks for the given event.
@@ -204,14 +204,9 @@ class Bridge(object):
         try:
             ref, args = util.parse_server_cmd(self, obj)
             if hasattr(ref, '__call__'):
-                ref(*args)
-        except util.UtilError as err:
-            logging.error(err)
-            logging.error('Received bad message from server.')
-        except Exception as err:
-            traceback.print_exc()
-            print('', '*' * 40, '\n', err, '\n', '*' * 40)
-            logging.error("Unknown exception in Bridge._on_message.")
+                util.wrapped_exec(ref, 'Bridge._on_message', *args)
+        except:
+            logging.error('Bad message from server in Bridge._on_message.')
 
 class _System(object):
     def __init__(self, bridge):

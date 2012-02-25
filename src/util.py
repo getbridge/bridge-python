@@ -1,6 +1,7 @@
 import types
 import random
 import string
+import traceback
 
 import reference
 
@@ -10,6 +11,13 @@ class UtilError(Exception):
 class Service(object):
     def __init__(self, func):
         self.callback = func
+
+def wrapped_exec(func, loc, *args):
+    try:
+        func(*args)
+    except Exception as err:
+        traceback.print_exc()
+        logging.error('At %s. %s.' % (loc, err))
 
 def serialize(bridge, obj):
     if isinstance(obj, reference.Ref):
