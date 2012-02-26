@@ -169,7 +169,6 @@ class Bridge(object):
         @param name The name of the event.
         @param func Called when this event is emitted.
         '''
-        logging.debug('Registering handler for event %s.' % (name))
         self._events[name].append(func)
 
     def emit(self, name, *args):
@@ -178,7 +177,6 @@ class Bridge(object):
         @param name The name of the event to trigger.
         @param args A list of arguments to the event callback.
         '''
-        logging.debug('Emitting event %s(%s).' % (name, args))
         if name in self._events:
             for func in self._events[name]:
                 util.wrapped_exec(func, 'Bridge.emit', *args)

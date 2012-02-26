@@ -28,7 +28,7 @@ class Connection(object):
                 body = body.get('data')
                 self.bridge.host = body.get('bridge_host')
                 self.bridge.port = int(body.get('bridge_port'))
-                logging.debug('Bridge host, port: (%s, %s).' % (self.bridge.host, self.bridge.port))
+                logging.info('@%s:%s' % (self.bridge.host, self.bridge.port))
                 client.close()
             except: 
                 logging.error('Could not contact redirector. Fatal.')
