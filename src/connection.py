@@ -18,8 +18,12 @@ class Connection(object):
         self.secret = None
 
     def establish_connection(self):
+        if self.bridge.connected:
+            logging.warning('Already connected.')
+            return
         if not (self.bridge.host and self.bridge.port):
             client = HTTPClient()
+            logging.info('Contacting redirector...')
             try:
                 res = client.fetch('%sredirect/%s' % (
                     self.bridge.redirector, self.bridge.api_key
@@ -101,11 +105,9 @@ class Connection(object):
             self.reconnect()
 
     def reconnect(self):
-        logging.info('Attempting reconnect.')
         if not self.bridge.connected and self.interval < 12800:
-            self.establish_connection()
+            self.loop.add_timeout(self.interval, self.establish_connection)
             self.interval *= 2
-            self.loop.add_timeout(self.interval, self.reconnect)
 
     def process_queue(self):
         while self.bridge.connected and len(self.msg_queue):
