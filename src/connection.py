@@ -16,6 +16,7 @@ class Connection(object):
         self.msg_queue = deque()
         self.client_id = None
         self.secret = None
+        self.on_message = self._connect_on_message
 
     def establish_connection(self):
         if self.bridge.connected:
@@ -76,11 +77,11 @@ class Connection(object):
         self.on_message(to_unicode(data))
         self.wait()
 
-    def on_message(self, msg):
+    def _connect_on_message(self, msg):
         try:
             self.client_id, self.secret = msg.split('|')
             logging.info('Bridge connect handshake complete.')
-            self.on_message = self._replacement_on_message
+            self.on_message = self._json_on_message
         except:
             self.bridge.emit('remote_error', 'Bad CONNECT.')
             logging.error('Connection.on_message: remote error!')
@@ -89,7 +90,7 @@ class Connection(object):
 
         self.bridge.emit('ready')
 
-    def _replacement_on_message(self, msg):
+    def _json_on_message(self, msg):
         try:
             obj = json_decode(msg)
             self.bridge._on_message(obj)
@@ -98,13 +99,13 @@ class Connection(object):
 
     def close_handler(self):
         self.bridge.connected = False
-        self.loop.stop()
         logging.error('Connection shutdown.')
         self.bridge.emit('disconnect')
         if self.bridge.reconnect:
             self.reconnect()
 
     def reconnect(self):
+        self.on_message = self._connect_on_message
         if not self.bridge.connected and self.interval < 12800:
             self.loop.add_timeout(self.interval, self.establish_connection)
             self.interval *= 2

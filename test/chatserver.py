@@ -3,7 +3,7 @@
 import logging
 from bridge import Bridge 
 
-bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG, api_key='abcdefgh', reconnect=False)
+bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG, api_key='abcdefgh', reconnect=True)
 
 class ChatServer(object):
     def join(self, name, handler, callback):
