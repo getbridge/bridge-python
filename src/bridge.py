@@ -64,6 +64,20 @@ class Bridge(object):
         else:
             util.wrapped_exec(func)
 
+    def _format_command(self, cmd, name, handler, func):
+        data = {
+            'name': name,
+        }
+        if func:
+            data['callback'] = util.serialize(self, func)
+        if handler:
+            data['handler'] = util.serialize(self, handler)
+        msg = {
+            'command': cmd,
+            'data': data,
+        }
+        self._connection.send(msg)
+
     def publish_service(self, name, service, func=None):
         '''Publish a service to Bridge.
 
@@ -77,29 +91,7 @@ class Bridge(object):
         else:
             chain = ['named', name, name]
             self._children[name] = reference.LocalRef(chain, service)
-            data = {
-                'name': name,
-            }
-            if func:
-                data['callback'] = util.serialize(self, func)
-            msg = {
-                'command': 'JOINWORKERPOOL',
-                'data': data,
-            }
-            self._connection.send(msg)
-
-    def _format_command(self, cmd, name, handler, func):
-        data = {
-            'name': name,
-            'handler': util.serialize(self, handler),
-        }
-        if func:
-            data['callback'] = util.serialize(self, func)
-        msg = {
-            'command': cmd,
-            'data': data,
-        }
-        self._connection.send(msg)
+            self._format_command('JOINWORKERPOOL', name, None, func)
 
     def join_channel(self, name, handler, func=None):
         '''Register a handler with a channel.
