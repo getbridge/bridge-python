@@ -88,6 +88,19 @@ class Bridge(object):
             }
             self._connection.send(msg)
 
+    def _format_command(self, cmd, name, handler, func):
+        data = {
+            'name': name,
+            'handler': util.serialize(self, handler),
+        }
+        if func:
+            data['callback'] = util.serialize(self, func)
+        msg = {
+            'command': cmd,
+            'data': data,
+        }
+        self._connection.send(msg)
+
     def join_channel(self, name, handler, func=None):
         '''Register a handler with a channel.
 
@@ -96,17 +109,7 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        data = {
-            'name': name,
-            'handler': util.serialize(self, handler),
-        }
-        if func:
-            data['callback'] = util.serialize(self, func)
-        msg = {
-            'command': 'JOINCHANNEL',
-            'data': data,
-        }
-        self._connection.send(msg)
+        self._format_command('JOINCHANNEL', name, handler, func)
 
     def leave_channel(self, name, handler, func=None):
         '''Remove yourself from a channel.
@@ -116,17 +119,7 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        data = {
-            'name': name,
-            'handler': handler._to_dict(),
-        }
-        if func:
-            data['callback'] = util.serialize(self, func)
-        msg = {
-            'command': 'LEAVECHANNEL',
-            'data': data,
-        }
-        self._connection.send(msg)
+        self._format_command('LEAVECHANNEL', name, handler, func)
 
     def get_service(self, name):
         '''Fetch a service from Bridge.
