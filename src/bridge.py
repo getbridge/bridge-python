@@ -64,7 +64,7 @@ class Bridge(object):
         else:
             util.wrapped_exec(func)
 
-    def publish_service(self, name, service, func):
+    def publish_service(self, name, service, func=None):
         '''Publish a service to Bridge.
 
         @param name The name of the service.
@@ -77,16 +77,18 @@ class Bridge(object):
         else:
             chain = ['named', name, name]
             self._children[name] = reference.LocalRef(chain, service)
+            data = {
+                'name': name,
+            }
+            if func:
+                data['callback'] = util.serialize(self, func)
             msg = {
                 'command': 'JOINWORKERPOOL',
-                'data': {
-                    'name': name,
-                    'callback': util.serialize(self, func),
-                },
+                'data': data,
             }
             self._connection.send(msg)
 
-    def join_channel(self, name, handler, func):
+    def join_channel(self, name, handler, func=None):
         '''Register a handler with a channel.
 
         @param name The name of the channel.
@@ -94,17 +96,19 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
+        data = {
+            'name': name,
+            'handler': util.serialize(self, handler),
+        }
+        if func:
+            data['callback'] = util.serialize(self, func)
         msg = {
             'command': 'JOINCHANNEL',
-            'data': {
-                'name': name,
-                'handler': util.serialize(self, handler),
-                'callback': util.serialize(self, func),
-            },
+            'data': data,
         }
         self._connection.send(msg)
 
-    def leave_channel(self, name, handler, func):
+    def leave_channel(self, name, handler, func=None):
         '''Remove yourself from a channel.
 
         @param name The name of the channel.
@@ -112,13 +116,15 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
+        data = {
+            'name': name,
+            'handler': handler._to_dict(),
+        }
+        if func:
+            data['callback'] = util.serialize(self, func)
         msg = {
             'command': 'LEAVECHANNEL',
-            'data': {
-                'name': name,
-                'handler': handler._to_dict(),
-                'callback': util.serialize(self, func),
-            },
+            'data': data,
         }
         self._connection.send(msg)
 
