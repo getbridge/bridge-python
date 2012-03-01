@@ -94,13 +94,11 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        if not isinstance(handler, reference.Ref):
-            handler = util.serialize(self, handler)
         msg = {
             'command': 'JOINCHANNEL',
             'data': {
                 'name': name,
-                'handler': handler._to_dict(),
+                'handler': util.serialize(self, handler),
                 'callback': util.serialize(self, func),
             },
         }
