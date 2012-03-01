@@ -72,7 +72,7 @@ def ref_matcher(key, val):
 def deep_scan(obj, matcher):
     iterator = []
     if type(obj) is dict:
-        iterator = obj
+        iterator = obj.items()
     elif type(obj) is list:
         iterator = enumerate(obj)
     for key, val in iterator:
