@@ -94,6 +94,8 @@ class Bridge(object):
         @param func Called (with no arguments) after the handler has been
         attached to the channel.
         '''
+        if not isinstance(handler, reference.Ref):
+            handler = util.serialize(self, handler)
         msg = {
             'command': 'JOINCHANNEL',
             'data': {
@@ -132,7 +134,7 @@ class Bridge(object):
         self._children[name] = ref
         return ref
 
-    def get_channel(self, name, func):
+    def get_channel(self, name):
         '''Fetch a channel from Bridge.
 
         @param name The name of the channel.
