@@ -72,7 +72,7 @@ class Bridge(object):
         @param func Called (with no arguments) when the service has been
         published.
         '''
-        if name in self._children:
+        if name == 'system':
             logging.error('Invalid service name: "%s".' % (name))
         else:
             chain = ['named', name, name]
