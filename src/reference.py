@@ -44,7 +44,7 @@ class LocalRef(Ref):
     def _get_ops(self):
         return [fn for fn in dir(self._service)
                     if not fn.startswith('_') and
-                        hasattr(getattr(self, fn), '__call__')]
+                        callable(getattr(self, fn))]
 
 class RemoteRef(Ref):
     def __init__(self, chain, bridge):

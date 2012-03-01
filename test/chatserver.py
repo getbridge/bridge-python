@@ -5,7 +5,7 @@ from bridge import Bridge
 
 bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG, api_key='abcdefgh', reconnect=True)
 
-class ChatServer(object):
+class ChatServer(bridge.Service):
     def join(self, name, handler, callback):
         print('Got join request for %s.' % (name))
         bridge.join_channel('lobby', handler, callback)

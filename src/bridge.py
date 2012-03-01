@@ -37,6 +37,7 @@ class Bridge(object):
         level = kwargs.get('log_level', logging.ERROR)
         logging.basicConfig(level=level)
         self.connected = False
+        self.Service = Service
 
         if not self.redirector.endswith('/'):
             self.redirector += '/'
@@ -189,10 +190,12 @@ class Bridge(object):
         self._events[name] = []
 
     def _send(self, args, chain_dict):
+        args = list(args)
+        args = util.serialize(self, args)
         msg = {
             'command': 'SEND',
             'data': {
-                'args': util.serialize(self, list(args)),
+                'args': args,
                 'destination': chain_dict,
             },
         }
@@ -201,12 +204,16 @@ class Bridge(object):
     def _on_message(self, obj):
         try:
             ref, args = util.parse_server_cmd(self, obj)
-            if hasattr(ref, '__call__'):
+            if callable(ref):
                 util.wrapped_exec(ref, 'Bridge._on_message', *args)
         except:
             logging.error('Bad message from server in Bridge._on_message.')
 
-class _System(object):
+class Service(object):
+    '''Subclassed for type-checking purposes.'''
+    pass
+
+class _System(Service):
     def __init__(self, bridge):
         self._bridge = bridge
 

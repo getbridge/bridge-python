@@ -9,7 +9,7 @@ import reference
 class UtilError(Exception):
     pass
 
-class Service(object):
+class Callback(object):
     def __init__(self, func):
         self.callback = func
 
@@ -21,21 +21,25 @@ def wrapped_exec(func, loc, *args):
         logging.error('At %s. %s.' % (loc, err))
 
 def serialize(bridge, obj):
-    if isinstance(obj, reference.Ref):
-        return obj._to_dict()
-    elif type(obj) is types.FunctionType:
-        return serialize_func(bridge, Service(obj))
-    elif hasattr(obj, '__call__'):
-        return serialize_func(bridge, obj)
-    else:
+    def atomic_matcher(key, val):
+        return isinstance(val, reference.Ref) or \
+            callable(val) or isinstance(val, bridge.Service)
+
+    if type(obj) in (list, dict):
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
         return obj
+    elif isinstance(obj, reference.Ref):
+        return obj._to_dict()
+    elif type(obj) is types.FunctionType:
+        return serialize_callable(bridge, Callback(obj))
+    elif callable(obj) or isinstance(obj, bridge.Service):
+        return serialize_callable(bridge, obj)
+    else:
+        print(obj)
+        raise UtilError('object not serializable.')
 
-def atomic_matcher(key, val):
-    return isinstance(val, reference.Ref) or hasattr(val, '__call__')
-
-def serialize_func(bridge, func):
+def serialize_callable(bridge, func):
     name = gen_guid()
     chain = ['client', bridge.get_client_id(), name]
     ref = reference.LocalRef(chain, func)
