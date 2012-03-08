@@ -217,7 +217,7 @@ class _System(Service):
 
     def getservice(self, name, func):
         if name in self._bridge._children:
-            func(self.bridge._children[name])
+            func(self._bridge._children[name])
         else:
             func(None, 'Cannot find service %s.' % (name))
 
