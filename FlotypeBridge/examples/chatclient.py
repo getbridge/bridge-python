@@ -3,7 +3,7 @@
 import logging
 from flotype.bridge import Bridge 
 
-bridge = Bridge(log_level=logging.DEBUG, api_key='qwertyui')
+bridge = Bridge(log_level=logging.DEBUG, api_key='abcdefgh')
 
 class MsgHandler(bridge.Service):
     def msg(self, name, message):

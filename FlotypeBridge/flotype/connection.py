@@ -37,7 +37,7 @@ class Connection(object):
                 logging.info('@%s:%s' % (self.bridge.host, self.bridge.port))
                 client.close()
             except: 
-                logging.error('Could not contact redirector. Fatal.')
+                logging.error('Could not resolve host with redirector.')
                 client.close()
                 return
 

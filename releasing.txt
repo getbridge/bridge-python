@@ -1,0 +1,4 @@
+Modify CHANGES.txt.
+Increment setup.py: version.
+python setup.py sdist upload
+
