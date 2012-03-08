@@ -8,11 +8,10 @@ be used to write clients and servers that interact over Bridge.
 Installation
 ============
 
-This package supports recent versions of Python 2 and Python 3. It depends
-on `tornado <http://www.tornadoweb.org/>`_. Installation and dependency
-management should be taken care of with;
+    $ pip install FlotypeBridge
 
-    $ easy_install FlotypeBridge
+This package supports recent versions of Python 2 and Python 3. It depends
+on `tornado <http://www.tornadoweb.org/>`_. 
 
 Usage
 =====
@@ -22,10 +21,11 @@ Getting started is as simple as;
     from flotype.bridge import Bridge
 
     bridge = Bridge(api_key='myapikey')
+
     bridge.ready(lambda: print('Connected to bridge.'))
 
-Take a look at the examples/ directory for more sample code. The full Bridge
-API reference can be found `here`__. The `getting started tutorial`__ may also
+The examples/ directory contains more sample code. The full Bridge API
+reference can be found `here`__. The `getting started tutorial`__ may also
 be useful.
 
 __ http://www.flotype.com/
