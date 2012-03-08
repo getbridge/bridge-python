@@ -4,7 +4,7 @@ import string
 import logging
 import traceback
 
-import reference
+from flotype import reference
 
 class UtilError(Exception):
     pass

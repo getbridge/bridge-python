@@ -1,1 +1,5 @@
+v0.1.2, 03/07/2012 -- Use flotype.X for imports.
+
+v0.1.1, 03/07/2012 -- Fix setup.py and README.txt.
+
 v0.1.0, 03/07/2012 -- Initial release.

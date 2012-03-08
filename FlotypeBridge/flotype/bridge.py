@@ -2,9 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-import util
-import connection
-import reference
+from flotype import util, connection, reference
 
 '''
 @package bridge
