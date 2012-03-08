@@ -3,6 +3,7 @@ import struct
 import socket
 import logging
 from collections import deque
+from datetime import timedelta
 
 from tornado import ioloop, iostream
 from tornado.escape import json_encode, json_decode, utf8, to_unicode
@@ -36,7 +37,7 @@ class Connection(object):
                 logging.info('@%s:%s' % (self.bridge.host, self.bridge.port))
                 client.close()
             except: 
-                logging.error('Could not contact redirector. Fatal.')
+                logging.error('Could not resolve host with redirector.')
                 client.close()
                 return
 
@@ -106,8 +107,9 @@ class Connection(object):
 
     def reconnect(self):
         self.on_message = self._connect_on_message
-        if not self.bridge.connected and self.interval < 12800:
-            self.loop.add_timeout(self.interval, self.establish_connection)
+        if not self.bridge.connected and self.interval < 51200:
+            delta = timedelta(milliseconds=self.interval)
+            self.loop.add_timeout(delta, self.establish_connection)
             self.interval *= 2
 
     def process_queue(self):

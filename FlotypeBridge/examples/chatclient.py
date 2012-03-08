@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import logging
-from bridge import Bridge 
+from flotype.bridge import Bridge 
 
-bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG, api_key='qwertyui', reconnect=True)
+bridge = Bridge(log_level=logging.DEBUG, api_key='abcdefgh')
 
 class MsgHandler(bridge.Service):
     def msg(self, name, message):
