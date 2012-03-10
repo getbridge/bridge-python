@@ -62,7 +62,11 @@ class RemoteRef(Ref):
         self._rpc(self._chain, args)
 
     def _rpc(self, chain, args):
-        self._bridge._send(args, ref_to_dict(chain, self._get_ops()))
+        if not is_method_chain(chain):
+            callchain = chain + ['callback']
+        else:
+            callchain = chain
+        self._bridge._send(args, ref_to_dict(callchain, self._get_ops()))
 
     def _get_ops(self):
         return []
