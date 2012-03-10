@@ -35,8 +35,12 @@ class LocalRef(Ref):
             method = self._chain[METHOD]
         elif hasattr(self._service, 'callback'):
             method = 'callback'
-        else:
+        elif hasattr(self._service, '__call__'):
             method = '__call__'
+        else:
+            name = self._chain[METHOD]
+            logging.error('Call to local::%s impossible.' % (name))
+            return
             
         func = getattr(self._service, method)
         func(*args)

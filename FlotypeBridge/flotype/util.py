@@ -20,6 +20,11 @@ def wrapped_exec(func, loc, *args):
         traceback.print_exc()
         logging.error('At %s.' % (loc))
 
+def is_function(obj):
+    return type(obj) in (
+        types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
+    )
+
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
         return isinstance(val, reference.Ref) or \
@@ -31,7 +36,7 @@ def serialize(bridge, obj):
         return obj
     elif isinstance(obj, reference.Ref):
         return obj._to_dict()
-    elif type(obj) is types.FunctionType:
+    elif is_function(obj):
         return serialize_callable(bridge, Callback(obj))
     elif callable(obj) or isinstance(obj, bridge.Service):
         return serialize_callable(bridge, obj)
