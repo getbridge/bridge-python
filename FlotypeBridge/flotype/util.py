@@ -16,9 +16,9 @@ class Callback(object):
 def wrapped_exec(func, loc, *args):
     try:
         func(*args)
-    except Exception as err:
+    except:
         traceback.print_exc()
-        logging.error('At %s. %s.' % (loc, err))
+        logging.error('At %s.' % (loc))
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
