@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='FlotypeBridge',
-    version='0.1.5',
+    version='0.1.6',
     author='Flotype Inc.',
     author_email='team@flotype.com',
     packages=['flotype'],
