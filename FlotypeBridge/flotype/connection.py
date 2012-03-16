@@ -9,50 +9,62 @@ from tornado import ioloop, iostream
 from tornado.escape import json_encode, json_decode, utf8, to_unicode
 from tornado.httpclient import HTTPClient, HTTPError
 
+
 class Connection(object):
     def __init__(self, bridge, interval=400):
+
+        # Set associated bridge object
         self.bridge = bridge
+
+        self.options = bridge._options
+
+        # Connection configurations
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
-        self.client_id = None
-        self.secret = None
         self.on_message = self._connect_on_message
 
-    def establish_connection(self):
-        if self.bridge.connected:
-            logging.warning('Already connected.')
-            return
-        if not (self.bridge.host and self.bridge.port):
-            client = HTTPClient()
-            logging.info('Contacting redirector...')
-            try:
-                res = client.fetch('%sredirect/%s' % (
-                    self.bridge.redirector, self.bridge.api_key
-                ))
-                body = json_decode(res.body)
-                body = body.get('data')
-                self.bridge.host = body.get('bridge_host')
-                self.bridge.port = int(body.get('bridge_port'))
-                logging.info('@%s:%s' % (self.bridge.host, self.bridge.port))
-                client.close()
-            except: 
-                logging.error('Could not resolve host with redirector.')
-                client.close()
-                return
+        self.client_id = None
+        self.secret = None
 
+        if self.options.get('host') is not None
+        and self.options.get('port') is not None:
+            self.redirector()
+        else:
+            self.establish_connection()
+
+    def redirector(self):
+        client = HTTPClient()
+        logging.info('Contacting redirector...')
+        try:
+            res = client.fetch('%sredirect/%s' % (
+                self.bridge.redirector, self.bridge.api_key
+            ))
+            body = json_decode(res.body).get('data')
+            if('bridge_port' not in body or 'bridge_host' not in body):
+                logging.error('Could not find host and port in JSON')
+            else:
+                self.options.host = body.get('bridge_host')
+                self.options.port = int(body.get('bridge_port'))
+                self.establish_connection()
+            client.close()
+        except:
+            logging.error('Could not resolve host with redirector.')
+            client.close()
+            return
+
+    def establish_connection(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
-        logging.info('Connecting to %s:%s.' %
-                     (self.bridge.host, self.bridge.port))
-        server = (self.bridge.host, self.bridge.port)
+        logging.info('Starting TCP connection')
+        server = (self.options.host, self.options.port)
         self.stream.connect(server, self.on_connect)
         if not self.loop.running():
             self.loop.start()
 
     def on_connect(self):
-        self.bridge.connected = True
+        logging.info('Beginning handshake')
         msg = {
             'command': 'CONNECT',
             'data': {
@@ -61,16 +73,16 @@ class Connection(object):
             },
         }
         self.send(msg)
-        self.stream.set_close_callback(self.close_handler)
+        self.stream.set_close_callback(self.on_close)
         if len(self.msg_queue):
             self.bridge.emit('reconnect')
             self.loop.add_callback(self.process_queue)
         self.wait()
 
     def wait(self):
-        self.stream.read_bytes(4, self.msg_handler)
+        self.stream.read_bytes(4, self.header_handler)
 
-    def msg_handler(self, data):
+    def header_handler(self, data):
         size = struct.unpack('>I', data)[0]
         self.stream.read_bytes(size, self.body_handler)
 
@@ -79,30 +91,27 @@ class Connection(object):
         self.wait()
 
     def _connect_on_message(self, msg):
+        logging.info('clientId and secret received')
         try:
             self.client_id, self.secret = msg.split('|')
-            logging.info('Bridge connect handshake complete.')
             self.on_message = self._json_on_message
+            self.bridge._on_ready()
         except:
-            self.bridge.emit('remote_error', 'Bad CONNECT.')
-            logging.error('Connection.on_message: remote error!')
-            self.close_handler()
             return
-
-        self.bridge.emit('ready')
 
     def _json_on_message(self, msg):
         try:
             obj = json_decode(msg)
+            logging.info('Received %s', msg)
             self.bridge._on_message(obj)
         except:
-            logging.info('Dropping corrupted message.')
+            logging.info('Message parsing failed')
 
-    def close_handler(self):
+    def on_close(self):
         self.bridge.connected = False
-        logging.error('Connection shutdown.')
+        logging.error('Connection closed')
         self.bridge.emit('disconnect')
-        if self.bridge.reconnect:
+        if self.options.reconnect:
             self.reconnect()
 
     def reconnect(self):
