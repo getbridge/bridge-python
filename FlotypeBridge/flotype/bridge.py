@@ -120,11 +120,6 @@ class Bridge(object):
         '''
         self._events[name] = []
 
-    def _on_ready():
-        logging.info('Handshake complete')
-        if not self._ready:
-            self._ready = True
-            self.emit('ready')
 
     def publish_service(self, name, handler, callback=None):
         '''Publish a service to Bridge.
@@ -201,3 +196,13 @@ class Bridge(object):
             self.on('ready', func)
         else:
             util.wrapped_exec(func)
+
+    def connect(self):
+        self._connection.start()
+
+    def _on_ready(self):
+        logging.info('Handshake complete')
+        if not self._ready:
+            self._ready = True
+            self.emit('ready')
+
