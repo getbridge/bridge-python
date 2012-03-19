@@ -69,13 +69,13 @@ def generate_guid():
 
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
-        chain = ref['ref']
-        service_ref = reference.get_ref(bridge, chain)
-        if not service_ref:
-            ops = ref.get('operations', [])
-            name = chain[reference.SERVICE]
-            service_ref = reference.RemoteRef(chain, bridge)
-        container[key] = service_ref
+        address = ref['ref']
+        ops = ref.get('operations', [])
+        ref = reference.Reference(bridge, address, ops)
+        if ref._operations == ['callback']:
+            container[key] = ref.callback
+        else:
+            container[key] = ref
     return obj
 
 def ref_matcher(key, val):
