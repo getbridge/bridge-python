@@ -72,8 +72,6 @@ class Connection(object):
         logging.info('Starting TCP connection')
         server = (self.options['host'], self.options['port'])
         self.stream.connect(server, self.on_connect)
-        if not self.loop.running():
-            self.loop.start()
 
     def on_connect(self):
         self.connected = True
@@ -145,3 +143,6 @@ class Connection(object):
             self.stream.write(buf)
         else:
             self.msg_queue.append(buf)
+
+    def start(self):
+        self.loop.start()
