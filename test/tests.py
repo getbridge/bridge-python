@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import logging
-from bridge import Bridge
+from flotype.bridge import Bridge
 
 bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG,
         api_key='abcdefgh', reconnect=True)
@@ -36,4 +36,4 @@ def start_client():
     bridge.leave_channel('myChannel', handler, callback)
 
 bridge.ready(start_client)
-
+bridge.connect()

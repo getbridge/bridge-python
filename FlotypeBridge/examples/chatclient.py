@@ -24,6 +24,7 @@ class LobbyHandler(bridge.Service):
 def start_client():
     lobby = LobbyHandler('Vedant')
     chat = bridge.get_service('chatserver')
-    chat.join('lobby', MsgHandler, lobby)
+    chat.join('lobby', MsgHandler(), lobby)
 
 bridge.ready(start_client)
+bridge.connect()
