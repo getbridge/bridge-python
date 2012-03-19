@@ -76,6 +76,7 @@ class Connection(object):
             self.loop.start()
 
     def on_connect(self):
+        self.connected = True
         logging.info('Beginning handshake')
         msg = {
             'command': 'CONNECT',
@@ -120,14 +121,14 @@ class Connection(object):
             logging.info('Message parsing failed')
 
     def on_close(self):
-        self.bridge.connected = False
+        self.connected = False
         logging.error('Connection closed')
         self.bridge.emit('disconnect')
         if self.options.reconnect:
             self.reconnect()
 
     def process_queue(self):
-        while self.bridge.connected and len(self.msg_queue):
+        while self.connected and len(self.msg_queue):
             buf = self.msg_queue.popleft()
             self.stream.write(buf)
 
@@ -140,7 +141,7 @@ class Connection(object):
         data = utf8(json_encode(msg))
         size = struct.pack('>I', len(data))
         buf = size + data
-        if self.bridge.connected:
+        if self.connected:
             self.stream.write(buf)
         else:
             self.msg_queue.append(buf)
