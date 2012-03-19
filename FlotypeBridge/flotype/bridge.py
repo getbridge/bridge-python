@@ -120,6 +120,14 @@ class Bridge(object):
         '''
         self._events[name] = []
 
+    def _send(self, args, destination):
+        args = list(args)
+        self._connection.send_command('SEND',
+                {
+                    'args': args,
+                    'destination': destination,
+                }
+        )
 
     def publish_service(self, name, handler, callback=None):
         '''Publish a service to Bridge.
