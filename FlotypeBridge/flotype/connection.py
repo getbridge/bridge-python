@@ -125,6 +125,11 @@ class Connection(object):
             buf = self.msg_queue.popleft()
             self.stream.write(buf)
 
+    def send_command(self, command, data):
+        msg = {'command': command, 'data': data}
+        msg = util.serialize(self.bridge, msg)
+        self.send(msg)
+
     def send(self, msg):
         data = utf8(json_encode(msg))
         size = struct.pack('>I', len(data))
