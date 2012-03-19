@@ -18,6 +18,7 @@ class Connection(object):
         # Set associated bridge object
         self.bridge = bridge
 
+        # Set options
         self.options = bridge._options
 
         # Connection configurations
