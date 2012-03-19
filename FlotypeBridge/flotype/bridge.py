@@ -18,13 +18,13 @@ class Service(object):
 class _System(Service):
     def __init__(self, bridge):
         self._bridge = bridge
+        self.hook_channel_handler = self.hookChannelHandler
 
     def hookChannelHandler(self, name, handler, func=None):
         chain = ['channel', name, 'channel:' + name]
-        ref = reference.LocalRef(chain, handler._service)
-        self._bridge._store['channel:' + name] = ref
+        self._bridge._store['channel:' + name] = handler._service
         if func:
-            func(ref, name)
+            func(handler._service, name)
 
     def getService(self, name, func):
         if name in self._bridge._store:
@@ -72,7 +72,7 @@ class Bridge(object):
         # Contains references to shared references
         sysobj = _System(self)
         self._store = {
-            'system': reference.LocalRef(['named', 'system', 'system'], sysobj),
+            'system': sysobj
         }
 
         # Indicate whether ready
@@ -126,20 +126,22 @@ class Bridge(object):
             self._ready = True
             self.emit('ready')
 
-    def publish_service(self, name, service, callback=None):
+    def publish_service(self, name, handler, callback=None):
         '''Publish a service to Bridge.
 
         @param name The name of the service.
-        @param service Any class with a default constructor, or any instance. 
+        @param service Any class with a default constructor, or any instance.
         @param callback Called (with no arguments) when the service has been
         published.
         '''
         if name == 'system':
             logging.error('Invalid service name: "%s"' % (name))
         else:
-            self._store[name] = reference.LocalRef(['named', name, name], service)
-            self.connection.send_command('JOINWORKERPOOL', {'name': name,
-                'callback': callback})
+            self._store[name] = handler
+            data = {'name': name}
+            if callback:
+                data['callback'] = callback
+            self._connection.send_command('JOINWORKERPOOL', data)
 
     def get_service(self, name):
         '''Fetch a service from Bridge.
@@ -148,7 +150,7 @@ class Bridge(object):
         @return An opaque reference to a service.
         '''
         # Diverges from JS implementation because of catch-all getters
-        return reference.RemoteRef(['named', name, name], self)
+        return reference.Reference(self, ['named', name, name])
 
     def get_channel(self, name):
         '''Fetch a channel from Bridge.
@@ -157,9 +159,9 @@ class Bridge(object):
         @return An opaque reference to a channel.
         '''
         self._connection.send_command('GETCHANNEL', {'name': name})
-        service = 'channel:' + name
+        object_id = 'channel:' + name
         # Diverges from JS implementation because of catch-all getters
-        return reference.RemoteRef(['channel', name, service], self)
+        return reference.Reference(self, ['channel', name, object_id])
 
     def join_channel(self, name, handler, callback=None):
         '''Register a handler with a channel.
