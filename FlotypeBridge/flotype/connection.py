@@ -23,35 +23,41 @@ class Connection(object):
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
         self.on_message = self._connect_on_message
+        self.connected = False
 
         self.client_id = None
         self.secret = None
 
-        if self.options.get('host') is not None
-        and self.options.get('port') is not None:
+        if self.options.get('host') is None or self.options.get('port') is None:
             self.redirector()
         else:
             self.establish_connection()
 
     def redirector(self):
         client = HTTPClient()
-        logging.info('Contacting redirector...')
         try:
-            res = client.fetch('%sredirect/%s' % (
-                self.bridge.redirector, self.bridge.api_key
+            res = client.fetch('%s/redirect/%s' % (
+                self.options['redirector'], self.options['api_key']
             ))
-            body = json_decode(res.body).get('data')
-            if('bridge_port' not in body or 'bridge_host' not in body):
-                logging.error('Could not find host and port in JSON')
-            else:
-                self.options.host = body.get('bridge_host')
-                self.options.port = int(body.get('bridge_port'))
-                self.establish_connection()
-            client.close()
         except:
-            logging.error('Could not resolve host with redirector.')
+            logging.error('Unable to contact redirector')
             client.close()
             return
+
+        try:
+            body = json_decode(res.body).get('data')
+        except:
+            logging.error('Unable to parse redirector response %s', res.body)
+            client.close()
+            return
+
+        if('bridge_port' not in body or 'bridge_host' not in body):
+            logging.error('Could not find host and port in JSON')
+        else:
+            self.options['host'] = body.get('bridge_host')
+            self.options['port'] = int(body.get('bridge_port'))
+            self.establish_connection()
+        client.close()
 
     def reconnect(self):
         self.on_message = self._connect_on_message
