@@ -56,7 +56,7 @@ def serialize_callable(bridge, func):
     bridge._children[name] = ref
     return ref._to_dict()
 
-def gen_guid():
+def generate_guid():
     return ''.join([
         random.choice(string.ascii_letters) for k in range(32)
     ])
