@@ -30,6 +30,12 @@ def is_function(obj):
         types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
     )
 
+def is_primitive(obj):
+    return type(obj) in (types.NoneType,
+            types.BooleanType, types.IntType, types.LongType, types.FloatType,
+            types.StringType, types.UnicodeType, types.TupleType,
+            types.ListType, types.DictType, types.DictionaryType)
+
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
         return isinstance(val, reference.Ref) or \
