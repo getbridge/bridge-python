@@ -40,7 +40,7 @@ class _System(Service):
 class Bridge(object):
     '''Interface to the Bridge server.'''
 
-    def __init__(self, ready=None, **kwargs):
+    def __init__(self, callback=None, **kwargs):
         '''Initialize Bridge.
 
         @param kwargs Specify optional config information.
@@ -84,8 +84,8 @@ class Bridge(object):
         # Store event handlers
         self._events = defaultdict(list)
 
-        if ready is not None:
-            self.ready(ready)
+        if callback is not None:
+            self.ready(callback)
 
 
 
