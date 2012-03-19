@@ -93,3 +93,9 @@ def deep_scan(obj, matcher):
         else:
             for result in deep_scan(val, matcher):
                 yield result
+
+
+def find_ops(obj):
+    return [fn for fn in dir(obj)
+                if not fn.startswith('_') and
+                    callable(getattr(obj, fn))]
