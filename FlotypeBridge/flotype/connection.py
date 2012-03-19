@@ -124,7 +124,7 @@ class Connection(object):
         self.connected = False
         logging.error('Connection closed')
         self.bridge.emit('disconnect')
-        if self.options.reconnect:
+        if self.options['reconnect']:
             self.reconnect()
 
     def process_queue(self):
