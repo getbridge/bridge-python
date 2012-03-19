@@ -53,6 +53,12 @@ class Connection(object):
             client.close()
             return
 
+    def reconnect(self):
+        self.on_message = self._connect_on_message
+        if not self.connected and self.interval < 32678:
+            delta = timedelta(milliseconds=self.interval)
+            self.loop.add_timeout(delta, self.establish_connection)
+
     def establish_connection(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -113,13 +119,6 @@ class Connection(object):
         self.bridge.emit('disconnect')
         if self.options.reconnect:
             self.reconnect()
-
-    def reconnect(self):
-        self.on_message = self._connect_on_message
-        if not self.bridge.connected and self.interval < 51200:
-            delta = timedelta(milliseconds=self.interval)
-            self.loop.add_timeout(delta, self.establish_connection)
-            self.interval *= 2
 
     def process_queue(self):
         while self.bridge.connected and len(self.msg_queue):
