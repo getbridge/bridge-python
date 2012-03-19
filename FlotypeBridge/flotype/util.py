@@ -61,14 +61,6 @@ def gen_guid():
         random.choice(string.ascii_letters) for k in range(32)
     ])
 
-def parse_server_cmd(bridge, obj):
-    chain = obj['destination']['ref']
-    args = deserialize(bridge, obj['args'])
-    ref = reference.get_ref(bridge, chain)
-    if reference.is_method_chain(chain):
-        ref = ref.__getattr__(chain[reference.METHOD])
-    return ref, args
-
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
         chain = ref['ref']
