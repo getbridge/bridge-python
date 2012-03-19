@@ -59,11 +59,11 @@ class Bridge(object):
 
         # Set configuration options
         self._options = {}
-        self._options.api_key = kwargs.get('api_key')
-        self._options.redirector = kwargs.get('redirector', 'http://redirector.flotype.com')
-        self._options.host = kwargs.get('host')
-        self._options.port = kwargs.get('port')
-        self._options.reconnect = kwargs.get('reconnect', True)
+        self._options['api_key'] = kwargs.get('api_key')
+        self._options['redirector'] = kwargs.get('redirector', 'http://redirector.flotype.com')
+        self._options['host'] = kwargs.get('host')
+        self._options['port'] = kwargs.get('port')
+        self._options['reconnect'] = kwargs.get('reconnect', True)
         level = kwargs.get('log_level', logging.WARNING)
 
         # Set logging level
