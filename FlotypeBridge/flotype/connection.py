@@ -70,7 +70,7 @@ class Connection(object):
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.sock)
         logging.info('Starting TCP connection')
-        server = (self.options.host, self.options.port)
+        server = (self.options['host'], self.options['port'])
         self.stream.connect(server, self.on_connect)
         if not self.loop.running():
             self.loop.start()
@@ -81,7 +81,7 @@ class Connection(object):
             'command': 'CONNECT',
             'data': {
                 'session': [self.client_id, self.secret],
-                'api_key': self.bridge.api_key,
+                'api_key': self.options['api_key'],
             },
         }
         self.send(msg)
