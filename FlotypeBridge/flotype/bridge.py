@@ -169,8 +169,10 @@ class Bridge(object):
         @param callback Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        self._connection.send_command('JOINCHANNEL', {'name': name,
-            'handler': handler, 'callback': callback})
+        data = {'name': name, 'handler': handler}
+        if callback:
+            data['callback'] = callback
+        self._connection.send_command('JOINCHANNEL', data)
 
     def leave_channel(self, name, handler, callback=None):
         '''Remove yourself from a channel.
@@ -180,8 +182,10 @@ class Bridge(object):
         @param callback Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        self._connection.send_command('LEAVECHANNEL', {'name': name,
-        'callback': callback})
+        data = {'name': name, 'handler': handler}
+        if callback:
+            data['callback'] = callback
+        self._connection.send_command('LEAVECHANNEL', data)
 
     def ready(self, func):
         '''Entry point into the Bridge event loop.
