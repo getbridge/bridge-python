@@ -11,7 +11,12 @@ class UtilError(Exception):
 
 class Callback(object):
     def __init__(self, func):
-        self.callback = func
+        # Cannot store it directly in self (will bind method)
+        self._cbDict = {'callback': func}
+
+    def callback(self, *args):
+        cb = self._cbDict.get('callback')
+        cb(*args)
 
 def wrapped_exec(func, loc, *args):
     try:
