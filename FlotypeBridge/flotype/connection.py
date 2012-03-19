@@ -103,20 +103,29 @@ class Connection(object):
 
     def _connect_on_message(self, msg):
         logging.info('clientId and secret received')
-        try:
-            self.client_id, self.secret = msg.split('|')
-            self.on_message = self._json_on_message
+        ids = msg.split('|')
+        if len(ids) != 2:
+            self._process_message(msg)
+        else:
+            self.client_id, self.secret = ids
+            self.on_message = self._process_message
             self.bridge._on_ready()
-        except:
-            return
 
-    def _json_on_message(self, msg):
+    def _process_message(self, msg):
         try:
             obj = json_decode(msg)
-            logging.info('Received %s', msg)
-            self.bridge._on_message(obj)
         except:
-            logging.info('Message parsing failed')
+            logging.warn("Message parsing failed")
+            return
+
+        logging.info('Received %s', msg)
+        util.deserialize(self.bridge, obj)
+        destination = obj.get('destination', None)
+        if not destination:
+            logging.warn('No destination in message')
+            return
+
+        self.bridge._execute(destination._address, obj['args'])
 
     def on_close(self):
         self.connected = False
