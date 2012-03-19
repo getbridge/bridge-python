@@ -87,7 +87,15 @@ class Bridge(object):
         if callback is not None:
             self.ready(callback)
 
+    def _execute(self, address, args):
+        obj = self._store[address[2]]
+        func = getattr(obj, address[3])
+        util.wrapped_exec(func, 'Bridge.execute', *args)
 
+    def _store_object(self, handler, ops):
+        name = util.generate_guid()
+        self._store[name] = handler
+        return reference.Reference(self, ['client', self._connection.client_id, name], ops)
 
     def on(self, name, func):
         '''Registers a callback for the specified event.
