@@ -9,6 +9,8 @@ from tornado import ioloop, iostream
 from tornado.escape import json_encode, json_decode, utf8, to_unicode
 from tornado.httpclient import HTTPClient, HTTPError
 
+from flotype import util
+
 
 class Connection(object):
     def __init__(self, bridge, interval=400):
