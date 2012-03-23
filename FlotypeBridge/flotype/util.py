@@ -6,8 +6,10 @@ import traceback
 
 from flotype import reference
 
+
 class UtilError(Exception):
     pass
+
 
 class Callback(object):
     def __init__(self, func):
@@ -18,6 +20,7 @@ class Callback(object):
         cb = self._cbDict.get('callback')
         cb(*args)
 
+
 def wrapped_exec(func, loc, *args):
     try:
         func(*args)
@@ -25,27 +28,30 @@ def wrapped_exec(func, loc, *args):
         traceback.print_exc()
         logging.error('At %s.' % (loc))
 
-def set_log_level(level):
-    if level == 3:
-        level = logging.INFO
-    elif level == 2:
-        level = logging.WARNING
-    elif level == 1:
-        level = logging.ERROR
-    elif level == 0:
-        level = logging.CRITICAL
-    logging.basicConfig(level=level)
-        
+
+def set_log_level(options):
+    level = options.get('log', 0)
+    log_level = {
+        0: logging.CRITICAL,
+        1: logging.ERROR,
+        2: logging.WARNING,
+        3: logging.INFO,
+    }.get(level, logging.DEBUG)
+    logging.basicConfig(level=log_level)
+
+
 def is_function(obj):
     return type(obj) in (
         types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
     )
+
 
 def is_primitive(obj):
     return type(obj) in (types.NoneType,
             types.BooleanType, types.IntType, types.LongType, types.FloatType,
             types.StringType, types.UnicodeType, types.TupleType,
             types.ListType, types.DictType, types.DictionaryType)
+
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):

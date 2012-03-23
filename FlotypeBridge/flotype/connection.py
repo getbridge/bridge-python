@@ -14,14 +14,13 @@ from flotype import util
 
 class Connection(object):
     def __init__(self, bridge, interval=400):
-
         # Set associated bridge object
         self.bridge = bridge
 
         # Set options
         self.options = bridge._options
 
-        # Connection configurations
+        # Connection configuration
         self.interval = interval
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
@@ -30,7 +29,7 @@ class Connection(object):
         self.client_id = None
         self.secret = None
 
-        if self.options.get('host') is None or self.options.get('port') is None:
+        if not (self.options.get('host') and self.options.get('port')):
             self.redirector()
         else:
             self.establish_connection()
@@ -53,8 +52,8 @@ class Connection(object):
             client.close()
             return
 
-        if('bridge_port' not in body or 'bridge_host' not in body):
-            logging.error('Could not find host and port in JSON')
+        if not ('bridge_port' in body and 'bridge_host' in body):
+            logging.error('Could not find host and port in JSON body.')
         else:
             self.options['host'] = body.get('bridge_host')
             self.options['port'] = int(body.get('bridge_port'))

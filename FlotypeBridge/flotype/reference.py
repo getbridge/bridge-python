@@ -1,13 +1,7 @@
 import logging
 
-TYPE    = 0
-ROUTE   = 1
-SERVICE = 2
-METHOD  = 3
-
 
 class Reference(object):
-
     def __init__(self, bridge, address, operations=[]):
         self._address = address
         self._operations = operations
@@ -19,7 +13,7 @@ class Reference(object):
         if op:
             address = self._address + [op]
         val['ref'] = address
-        if not is_method_address(address):
+        if len(address) != 4:
             val['operations'] = self._operations
         return val
 
@@ -31,6 +25,3 @@ class Reference(object):
     def _call(self, op, args):
         logging.info('Calling %s.%s', self._address, op)
         self._bridge._send(args, self._to_dict(op))
-
-def is_method_address(address):
-    return len(address) == 4
