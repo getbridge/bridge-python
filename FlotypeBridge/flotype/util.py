@@ -25,6 +25,17 @@ def wrapped_exec(func, loc, *args):
         traceback.print_exc()
         logging.error('At %s.' % (loc))
 
+def set_log_level(level):
+    if level == 3:
+        level = logging.INFO
+    elif level == 2:
+        level = logging.WARNING
+    elif level == 1:
+        level = logging.ERROR
+    elif level == 0:
+        level = logging.CRITICAL
+    logging.basicConfig(level=level)
+        
 def is_function(obj):
     return type(obj) in (
         types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
