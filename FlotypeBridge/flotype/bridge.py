@@ -221,7 +221,7 @@ class Bridge(object):
         if not self._ready:
             self.on('ready', func)
         else:
-            util.wrapped_exec(func)
+            util.wrapped_exec(func, 'Bridge.ready')
 
     def connect(self):
         self._connection.start()
