@@ -215,6 +215,7 @@ class Bridge(object):
 
     def connect(self):
         self._connection.start()
+        return self
 
     def _on_ready(self):
         logging.info('Handshake complete')
