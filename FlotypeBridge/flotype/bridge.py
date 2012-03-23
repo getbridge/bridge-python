@@ -64,10 +64,10 @@ class Bridge(object):
         self._options['host'] = kwargs.get('host')
         self._options['port'] = kwargs.get('port')
         self._options['reconnect'] = kwargs.get('reconnect', True)
-        level = kwargs.get('log_level', logging.WARNING)
+        self._options['log'] = kwargs.get('log', logging.WARNING)
 
         # Set logging level
-        logging.basicConfig(level=level)
+        util.set_log_level(self._options['log'])
 
         # Contains references to shared references
         sysobj = _System(self)
@@ -215,6 +215,7 @@ class Bridge(object):
 
     def connect(self):
         self._connection.start()
+        return self
 
     def _on_ready(self):
         logging.info('Handshake complete')

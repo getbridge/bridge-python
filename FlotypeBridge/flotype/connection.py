@@ -26,7 +26,6 @@ class Connection(object):
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
         self.on_message = self._connect_on_message
-        self.connected = False
 
         self.client_id = None
         self.secret = None
@@ -64,7 +63,7 @@ class Connection(object):
 
     def reconnect(self):
         self.on_message = self._connect_on_message
-        if not self.connected and self.interval < 32678:
+        if self.interval < 32678:
             delta = timedelta(milliseconds=self.interval)
             self.loop.add_timeout(delta, self.establish_connection)
 
@@ -77,7 +76,6 @@ class Connection(object):
         self.stream.connect(server, self.on_connect)
 
     def on_connect(self):
-        self.connected = True
         logging.info('Beginning handshake')
         msg = {
             'command': 'CONNECT',
@@ -86,11 +84,8 @@ class Connection(object):
                 'api_key': self.options['api_key'],
             },
         }
-        self.send(msg)
+        self._send(utf8(json_encode(msg)))
         self.stream.set_close_callback(self.on_close)
-        if len(self.msg_queue):
-            self.bridge.emit('reconnect')
-            self.loop.add_callback(self.process_queue)
         self.wait()
 
     def wait(self):
@@ -113,6 +108,7 @@ class Connection(object):
             self.client_id, self.secret = ids
             self.on_message = self._process_message
             self.bridge._on_ready()
+            self.process_queue()
 
     def _process_message(self, msg):
         try:
@@ -131,16 +127,17 @@ class Connection(object):
         self.bridge._execute(destination._address, obj['args'])
 
     def on_close(self):
-        self.connected = False
         logging.error('Connection closed')
+        self.bridge._ready = False
         self.bridge.emit('disconnect')
         if self.options['reconnect']:
             self.reconnect()
 
     def process_queue(self):
-        while self.connected and len(self.msg_queue):
-            buf = self.msg_queue.popleft()
-            self.stream.write(buf)
+        while len(self.msg_queue):
+            msg = self.msg_queue.popleft()
+            replaced_msg = msg.replace('"client", null', '"client", "' + self.client_id + '"')
+            self._send(utf8(replaced_msg))
 
     def send_command(self, command, data):
         msg = {'command': command, 'data': data}
@@ -149,12 +146,15 @@ class Connection(object):
 
     def send(self, msg):
         data = utf8(json_encode(msg))
-        size = struct.pack('>I', len(data))
-        buf = size + data
-        if self.connected:
-            self.stream.write(buf)
+        if self.bridge._ready:
+            self._send(data)
         else:
-            self.msg_queue.append(buf)
+            self.msg_queue.append(data)
+
+    def _send(self, msg):
+        size = struct.pack('>I', len(msg))
+        buf = size + msg
+        self.stream.write(buf)
 
     def start(self):
         self.loop.start()
