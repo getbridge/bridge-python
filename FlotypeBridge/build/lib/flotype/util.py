@@ -11,63 +11,68 @@ class UtilError(Exception):
 
 class Callback(object):
     def __init__(self, func):
-        self.callback = func
+        # Cannot store it directly in self (will bind method)
+        self._cbDict = {'callback': func}
+
+    def callback(self, *args):
+        cb = self._cbDict.get('callback')
+        cb(*args)
 
 def wrapped_exec(func, loc, *args):
     try:
         func(*args)
-    except Exception as err:
+    except:
         traceback.print_exc()
-        logging.error('At %s. %s.' % (loc, err))
+        logging.error('At %s.' % (loc))
+
+def is_function(obj):
+    return type(obj) in (
+        types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
+    )
+
+def is_primitive(obj):
+    return type(obj) in (types.NoneType,
+            types.BooleanType, types.IntType, types.LongType, types.FloatType,
+            types.StringType, types.UnicodeType, types.TupleType,
+            types.ListType, types.DictType, types.DictionaryType)
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
-        return isinstance(val, reference.Ref) or \
+        return isinstance(val, reference.Reference) or \
             callable(val) or isinstance(val, bridge.Service)
 
     if type(obj) in (list, dict):
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
         return obj
-    elif isinstance(obj, reference.Ref):
+    elif isinstance(obj, reference.Reference):
         return obj._to_dict()
-    elif type(obj) is types.FunctionType:
-        return serialize_callable(bridge, Callback(obj))
-    elif callable(obj) or isinstance(obj, bridge.Service):
-        return serialize_callable(bridge, obj)
+    elif callable(obj) or is_function(obj):
+        if getattr(obj, '_reference', None) is not None:
+            return obj._reference._to_dict()
+        else:
+            handler = Callback(obj)
+            return bridge._store_object(handler, find_ops(handler))._to_dict()
+    elif not is_primitive(obj):
+        return bridge._store_object(obj, find_ops(obj))._to_dict()
     else:
         print(obj)
         raise UtilError('object not serializable.')
 
-def serialize_callable(bridge, func):
-    name = gen_guid()
-    chain = ['client', bridge.get_client_id(), name]
-    ref = reference.LocalRef(chain, func)
-    bridge._children[name] = ref
-    return ref._to_dict()
-
-def gen_guid():
+def generate_guid():
     return ''.join([
         random.choice(string.ascii_letters) for k in range(32)
     ])
 
-def parse_server_cmd(bridge, obj):
-    chain = obj['destination']['ref']
-    args = deserialize(bridge, obj['args'])
-    ref = reference.get_ref(bridge, chain)
-    if reference.is_method_chain(chain):
-        ref = ref.__getattr__(chain[reference.METHOD])
-    return ref, args
-
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
-        chain = ref['ref']
-        service_ref = reference.get_ref(bridge, chain)
-        if not service_ref:
-            ops = ref.get('operations', [])
-            name = chain[reference.SERVICE]
-            service_ref = reference.RemoteRef(chain, bridge)
-        container[key] = service_ref
+        address = ref['ref']
+        ops = ref.get('operations', [])
+        ref = reference.Reference(bridge, address, ops)
+        if ref._operations == ['callback']:
+            container[key] = ref.callback
+        else:
+            container[key] = ref
     return obj
 
 def ref_matcher(key, val):
@@ -85,3 +90,9 @@ def deep_scan(obj, matcher):
         else:
             for result in deep_scan(val, matcher):
                 yield result
+
+
+def find_ops(obj):
+    return [fn for fn in dir(obj)
+                if not fn.startswith('_') and
+                    callable(getattr(obj, fn))]

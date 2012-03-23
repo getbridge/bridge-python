@@ -9,10 +9,38 @@ from flotype import util, connection, reference
 A Python API for bridge clients.
 '''
 
+
+class Service(object):
+    '''Subclassed for type-checking purposes.'''
+    pass
+
+
+class _System(Service):
+    def __init__(self, bridge):
+        self._bridge = bridge
+        self.hook_channel_handler = self.hookChannelHandler
+
+    def hookChannelHandler(self, name, handler, func=None):
+        chain = ['channel', name, 'channel:' + name]
+        self._bridge._store['channel:' + name] = handler._service
+        if func:
+            func(handler._service, name)
+
+    def getService(self, name, func):
+        if name in self._bridge._store:
+            func(self._bridge._store[name], name)
+        else:
+            func(None, name)
+
+    def remoteError(self, msg):
+        logging.warning(msg)
+        self._bridge.emit('remote_error', msg)
+
+
 class Bridge(object):
     '''Interface to the Bridge server.'''
 
-    def __init__(self, **kwargs):
+    def __init__(self, callback=None, **kwargs):
         '''Initialize Bridge.
 
         @param kwargs Specify optional config information.
@@ -27,125 +55,47 @@ class Bridge(object):
         @var self.connected Connection state. Initially False. Set to True
         when a connection is established.
         '''
-        self.api_key = kwargs.get('api_key')
-        self.redirector = kwargs.get('redirector', 'http://redirector.flotype.com')
-        self.host = kwargs.get('host')
-        self.port = kwargs.get('port')
-        self.reconnect = kwargs.get('reconnect', True)
-        level = kwargs.get('log_level', logging.ERROR)
-        logging.basicConfig(level=level)
-        self.connected = False
         self.Service = Service
 
-        if not self.redirector.endswith('/'):
-            self.redirector += '/'
+        # Set configuration options
+        self._options = {}
+        self._options['api_key'] = kwargs.get('api_key')
+        self._options['redirector'] = kwargs.get('redirector', 'http://redirector.flotype.com')
+        self._options['host'] = kwargs.get('host')
+        self._options['port'] = kwargs.get('port')
+        self._options['reconnect'] = kwargs.get('reconnect', True)
+        level = kwargs.get('log_level', logging.WARNING)
 
-        self._events = defaultdict(list)
+        # Set logging level
+        logging.basicConfig(level=level)
+
+        # Contains references to shared references
         sysobj = _System(self)
-        chain = ['named', 'system', 'system']
-        self._children = {
-            'system': reference.LocalRef(chain, sysobj),
+        self._store = {
+            'system': sysobj
         }
+
+        # Indicate whether ready
+        self._ready = False
+
+        # Communication layer
         self._connection = connection.Connection(self)
 
-    def ready(self, func):
-        '''Entry point into the Bridge event loop.
+        # Store event handlers
+        self._events = defaultdict(list)
 
-        func is called when this node has established a connection to a Bridge
-        instance.
+        if callback is not None:
+            self.ready(callback)
 
-        @param func Called (with no arguments) after initialization.
-        '''
-        if not self.connected:
-            self.on('ready', func)
-            self._connection.establish_connection()
-        else:
-            util.wrapped_exec(func)
+    def _execute(self, address, args):
+        obj = self._store[address[2]]
+        func = getattr(obj, address[3])
+        util.wrapped_exec(func, 'Bridge.execute', *args)
 
-    def _format_command(self, cmd, name, handler, func):
-        data = {
-            'name': name,
-        }
-        if func:
-            data['callback'] = util.serialize(self, func)
-        if handler:
-            data['handler'] = util.serialize(self, handler)
-        msg = {
-            'command': cmd,
-            'data': data,
-        }
-        self._connection.send(msg)
-
-    def publish_service(self, name, service, func=None):
-        '''Publish a service to Bridge.
-
-        @param name The name of the service.
-        @param service Any class with a default constructor, or any instance. 
-        @param func Called (with no arguments) when the service has been
-        published.
-        '''
-        if name == 'system':
-            logging.error('Invalid service name: "%s".' % (name))
-        else:
-            chain = ['named', name, name]
-            self._children[name] = reference.LocalRef(chain, service)
-            self._format_command('JOINWORKERPOOL', name, None, func)
-
-    def join_channel(self, name, handler, func=None):
-        '''Register a handler with a channel.
-
-        @param name The name of the channel.
-        @param handler An opaque reference to a channel.
-        @param func Called (with no arguments) after the handler has been
-        attached to the channel.
-        '''
-        self._format_command('JOINCHANNEL', name, handler, func)
-
-    def leave_channel(self, name, handler, func=None):
-        '''Remove yourself from a channel.
-
-        @param name The name of the channel.
-        @param handler An opaque reference to a channel.
-        @param func Called (with no arguments) after the handler has been
-        attached to the channel.
-        '''
-        self._format_command('LEAVECHANNEL', name, handler, func)
-
-    def get_service(self, name):
-        '''Fetch a service from Bridge.
-
-        @param name The service name.
-        @return An opaque reference to a service.
-        '''
-        ref = reference.RemoteRef(['named', name, name], self)
-        self._children[name] = ref
-        return ref
-
-    def get_channel(self, name):
-        '''Fetch a channel from Bridge.
-
-        @param name The name of the channel.
-        @return An opaque reference to a channel.
-        '''
-        msg = {        
-            'command': 'GETCHANNEL',
-            'data': {
-                'name': name,
-            },
-        }
-        self._connection.send(msg)
-        service = 'channel:' + name
-        chain = ['channel', name, service]
-        ref = reference.RemoteRef(chain, self)
-        self._children[service] = ref
-        return ref
-
-    def get_client_id(self):
-        '''Returns the client ID of this node.
-
-        @return None || str
-        '''
-        return self._connection.client_id
+    def _store_object(self, handler, ops):
+        name = util.generate_guid()
+        self._store[name] = handler
+        return reference.Reference(self, ['client', self._connection.client_id, name], ops)
 
     def on(self, name, func):
         '''Registers a callback for the specified event.
@@ -171,54 +121,104 @@ class Bridge(object):
             for func in self._events[name]:
                 util.wrapped_exec(func, 'Bridge.emit', *args)
 
-    def clear_event(self, name):
+    def remove_event(self, name):
         '''Removes the callbacks for the given event.
 
         @param name Name of an event.
         '''
         self._events[name] = []
 
-    def _send(self, args, chain_dict):
+    def _send(self, args, destination):
         args = list(args)
-        args = util.serialize(self, args)
-        msg = {
-            'command': 'SEND',
-            'data': {
-                'args': args,
-                'destination': chain_dict,
-            },
-        }
-        self._connection.send(msg)
+        self._connection.send_command('SEND',
+                {
+                    'args': args,
+                    'destination': destination,
+                }
+        )
 
-    def _on_message(self, obj):
-        try:
-            ref, args = util.parse_server_cmd(self, obj)
-            if callable(ref):
-                util.wrapped_exec(ref, 'Bridge._on_message', *args)
-        except:
-            logging.error('Bad message from server in Bridge._on_message.')
+    def publish_service(self, name, handler, callback=None):
+        '''Publish a service to Bridge.
 
-class Service(object):
-    '''Subclassed for type-checking purposes.'''
-    pass
-
-class _System(Service):
-    def __init__(self, bridge):
-        self._bridge = bridge
-
-    def hook_channel_handler(self, name, handler, func=None):
-        chain = ['channel', name, 'channel:' + name]
-        ref = reference.LocalRef(chain, handler._service)
-        self._bridge._children['channel:' + name] = ref
-        if func:
-            func(ref, name)
-
-    def getservice(self, name, func):
-        if name in self._bridge._children:
-            func(self.bridge._children[name])
+        @param name The name of the service.
+        @param service Any class with a default constructor, or any instance.
+        @param callback Called (with no arguments) when the service has been
+        published.
+        '''
+        if name == 'system':
+            logging.error('Invalid service name: "%s"' % (name))
         else:
-            func(None, 'Cannot find service %s.' % (name))
+            self._store[name] = handler
+            data = {'name': name}
+            if callback:
+                data['callback'] = callback
+            self._connection.send_command('JOINWORKERPOOL', data)
 
-    def remoteError(self, msg):
-        logging.error(msg)
-        self._bridge.emit('remote_error', msg)
+    def get_service(self, name):
+        '''Fetch a service from Bridge.
+
+        @param name The service name.
+        @return An opaque reference to a service.
+        '''
+        # Diverges from JS implementation because of catch-all getters
+        return reference.Reference(self, ['named', name, name])
+
+    def get_channel(self, name):
+        '''Fetch a channel from Bridge.
+
+        @param name The name of the channel.
+        @return An opaque reference to a channel.
+        '''
+        self._connection.send_command('GETCHANNEL', {'name': name})
+        object_id = 'channel:' + name
+        # Diverges from JS implementation because of catch-all getters
+        return reference.Reference(self, ['channel', name, object_id])
+
+    def join_channel(self, name, handler, callback=None):
+        '''Register a handler with a channel.
+
+        @param name The name of the channel.
+        @param handler An opaque reference to a channel.
+        @param callback Called (with no arguments) after the handler has been
+        attached to the channel.
+        '''
+        data = {'name': name, 'handler': handler}
+        if callback:
+            data['callback'] = callback
+        self._connection.send_command('JOINCHANNEL', data)
+
+    def leave_channel(self, name, handler, callback=None):
+        '''Remove yourself from a channel.
+
+        @param name The name of the channel.
+        @param handler An opaque reference to a channel.
+        @param callback Called (with no arguments) after the handler has been
+        attached to the channel.
+        '''
+        data = {'name': name, 'handler': handler}
+        if callback:
+            data['callback'] = callback
+        self._connection.send_command('LEAVECHANNEL', data)
+
+    def ready(self, func):
+        '''Entry point into the Bridge event loop.
+
+        func is called when this node has established a connection to a Bridge
+        instance.
+
+        @param func Called (with no arguments) after initialization.
+        '''
+        if not self._ready:
+            self.on('ready', func)
+        else:
+            util.wrapped_exec(func)
+
+    def connect(self):
+        self._connection.start()
+
+    def _on_ready(self):
+        logging.info('Handshake complete')
+        if not self._ready:
+            self._ready = True
+            self.emit('ready')
+
