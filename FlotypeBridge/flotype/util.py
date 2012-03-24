@@ -69,10 +69,9 @@ def is_primitive(obj):
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
-        return isinstance(val, reference.Reference) or \
-            callable(val) or isinstance(val, bridge.Service)
-
-    if type(obj) in (list, dict):
+        return not is_primitive(val)
+            
+    if isinstance(obj, dict) or isinstance(obj, list):
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
         return obj
@@ -87,8 +86,8 @@ def serialize(bridge, obj):
     elif not is_primitive(obj):
         return bridge._store_object(obj, find_ops(obj))._to_dict()
     else:
-        print(obj)
-        raise UtilError('object not serializable.')
+        logging.warn('Object not serializable')
+        return obj
 
 
 def generate_guid():
