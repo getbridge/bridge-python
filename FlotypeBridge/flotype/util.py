@@ -40,42 +40,32 @@ def wrapped_exec(func, loc, *args):
         logging.error('At %s.' % (loc))
 
 
-def set_log_level(options):
-    level = options.get('log', 0)
-    log_level = {
-        0: logging.CRITICAL,
-        1: logging.ERROR,
-        2: logging.WARNING,
-        3: logging.INFO,
-    }.get(level, logging.DEBUG)
-    logging.basicConfig(level=log_level)
-
-
 def is_primitive(obj):
     return type(obj) in primitives
 
 
 def serialize(bridge, obj):
-    def atomic_matcher(key, val):
-        return not is_primitive(val)
-
-    if type(obj) in (list, dict):
-        for container, key, val in deep_scan(obj, atomic_matcher):
-            container[key] = serialize(bridge, val)
-        return obj
-    elif isinstance(obj, reference.Reference):
-        return obj._to_dict()
-    elif callable(obj):
-        if getattr(obj, '_reference', None) is not None:
-            return obj._reference._to_dict()
-        else:
-            handler = Callback(obj)
-            return bridge._store_object(handler, find_ops(handler))._to_dict()
-    elif not is_primitive(obj):
-        return bridge._store_object(obj, find_ops(obj))._to_dict()
+    if type(obj) == list:
+        return [serialize(bridge, elt) for elt in obj]
+    elif type(obj) == dict:
+        return {key: serialize(bridge, val) for key, val in obj.items()}
     else:
-        logging.warn('Object not serializable.')
-        return obj
+        return serialize_atom(bridge, obj)
+
+
+def serialize_atom(bridge, atom):
+    if callable(atom):
+        if getattr(atom, '_reference', None) is not None:
+            return atom._reference._to_dict()
+        else:
+            handler = Callback(atom)
+            return bridge._store_object(handler, find_ops(handler))._to_dict()
+    elif isinstance(atom, reference.Reference):
+        return atom._to_dict()
+    elif not is_primitive(atom):
+        return bridge._store_object(atom, find_ops(atom))._to_dict()
+    else:
+        return atom
 
 
 def generate_guid():

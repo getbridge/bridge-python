@@ -55,14 +55,12 @@ class Bridge(object):
         self._options = {}
         self._options['api_key'] = kwargs.get('api_key')
         self._options['log'] = kwargs.get('log', logging.WARNING)
+        logging.basicConfig(level=self._options['log'])
         redirector = kwargs.get('redirector', 'http://redirector.flotype.com')
         self._options['redirector'] = redirector
         self._options['host'] = kwargs.get('host')
         self._options['port'] = kwargs.get('port')
         self._options['reconnect'] = kwargs.get('reconnect', True)
-
-        # Correct and set logging level.
-        util.set_log_level(self._options)
 
         # Manage objects containing shared references.
         self._store = {
