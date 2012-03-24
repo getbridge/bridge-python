@@ -26,6 +26,7 @@ class Connection(object):
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
         self.on_message = self._connect_on_message
+        self.has_reconnected = False
 
         # Client identification.
         self.client_id = None
@@ -64,6 +65,7 @@ class Connection(object):
         client.close()
 
     def reconnect(self):
+        self.has_reconnected = True
         self.on_message = self._connect_on_message
         if self.interval < 32678:
             delta = timedelta(milliseconds=self.interval)
@@ -78,6 +80,9 @@ class Connection(object):
         self.stream.connect(server, self.on_connect)
 
     def on_connect(self):
+        if self.has_reconnected:
+            self.bridge.emit('reconnect')
+
         logging.info('Beginning handshake.')
         msg = {
             'command': 'CONNECT',

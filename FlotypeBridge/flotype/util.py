@@ -6,17 +6,6 @@ import traceback
 
 from flotype import reference
 
-func_types = set((
-    types.FunctionType, 
-    types.MethodType,
-    types.BuiltinFunctionType,
-    types.BuiltinMethodType
-))
-
-
-class UtilError(Exception):
-    pass
-
 
 class Promise(object):
     def __init__(self, root, attr):
@@ -56,20 +45,13 @@ def set_log_level(options):
     logging.basicConfig(level=log_level)
 
 
-def is_function(obj):
-    return type(obj) in func_types
-
-
-def is_primitive(obj):
-    return type(obj) in (types.NoneType,
-            types.BooleanType, types.IntType, types.LongType, types.FloatType,
-            types.StringType, types.UnicodeType, types.TupleType,
-            types.ListType, types.DictType, types.DictionaryType)
+def is_nonprimitive(obj):
+    return isinstance(obj, reference.Reference) or callable(obj)
 
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
-        return not is_primitive(val)
+        return is_nonprimitive(val)
             
     if isinstance(obj, dict) or isinstance(obj, list):
         for container, key, val in deep_scan(obj, atomic_matcher):
@@ -77,7 +59,7 @@ def serialize(bridge, obj):
         return obj
     elif isinstance(obj, reference.Reference):
         return obj._to_dict()
-    elif callable(obj) or is_function(obj):
+    elif callable(obj):
         if getattr(obj, '_reference', None) is not None:
             return obj._reference._to_dict()
         else:
