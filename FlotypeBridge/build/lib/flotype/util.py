@@ -7,10 +7,6 @@ import traceback
 from flotype import reference
 
 
-class UtilError(Exception):
-    pass
-
-
 class Promise(object):
     def __init__(self, root, attr):
         self.root = root
@@ -49,41 +45,33 @@ def set_log_level(options):
     logging.basicConfig(level=log_level)
 
 
-def is_function(obj):
-    return type(obj) in (
-        types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
-    )
-
-
-def is_primitive(obj):
-    return type(obj) in (types.NoneType,
-            types.BooleanType, types.IntType, types.LongType, types.FloatType,
-            types.StringType, types.UnicodeType, types.TupleType,
-            types.ListType, types.DictType, types.DictionaryType)
+def is_nonprimitive(bridge, obj):
+    return isinstance(obj, reference.Reference) or callable(obj) \
+        or isinstance(obj, bridge.Service) or isinstance(obj, list) \
+        or isinstance(obj, dict)
 
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
-        return isinstance(val, reference.Reference) or \
-            callable(val) or isinstance(val, bridge.Service)
-
-    if type(obj) in (list, dict):
+        return is_nonprimitive(bridge, val)
+            
+    if isinstance(obj, dict) or isinstance(obj, list):
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
         return obj
     elif isinstance(obj, reference.Reference):
         return obj._to_dict()
-    elif callable(obj) or is_function(obj):
+    elif callable(obj):
         if getattr(obj, '_reference', None) is not None:
             return obj._reference._to_dict()
         else:
             handler = Callback(obj)
             return bridge._store_object(handler, find_ops(handler))._to_dict()
-    elif not is_primitive(obj):
+    elif is_nonprimitive(bridge, obj):
         return bridge._store_object(obj, find_ops(obj))._to_dict()
     else:
-        print(obj)
-        raise UtilError('object not serializable.')
+        logging.warn('Object not serializable')
+        return obj
 
 
 def generate_guid():

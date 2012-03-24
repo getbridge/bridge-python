@@ -26,6 +26,7 @@ class Connection(object):
         self.loop = ioloop.IOLoop.instance()
         self.msg_queue = deque()
         self.on_message = self._connect_on_message
+        self.has_reconnected = False
 
         # Client identification.
         self.client_id = None
@@ -64,6 +65,7 @@ class Connection(object):
         client.close()
 
     def reconnect(self):
+        self.has_reconnected = True
         self.on_message = self._connect_on_message
         if self.interval < 32678:
             delta = timedelta(milliseconds=self.interval)
@@ -78,6 +80,9 @@ class Connection(object):
         self.stream.connect(server, self.on_connect)
 
     def on_connect(self):
+        if self.has_reconnected:
+            self.bridge.emit('reconnect')
+
         logging.info('Beginning handshake.')
         msg = {
             'command': 'CONNECT',
@@ -92,15 +97,15 @@ class Connection(object):
 
     def wait(self):
         self.stream.read_bytes(4, self.header_handler)
-
+        
     def header_handler(self, data):
         size = struct.unpack('>I', data)[0]
         self.stream.read_bytes(size, self.body_handler)
-
+        
     def body_handler(self, data):
         self.on_message(to_unicode(data))
         self.wait()
-
+        
     def _connect_on_message(self, msg):
         logging.info('Received clientId and secret.')
         ids = msg.split('|')
@@ -109,9 +114,9 @@ class Connection(object):
         else:
             self.client_id, self.secret = ids
             self.on_message = self._process_message
-            self.bridge._on_ready()
             self.process_queue()
-
+            self.bridge._on_ready()
+            
     def _process_message(self, msg):
         try:
             obj = json.loads(msg)

@@ -236,3 +236,4 @@ class Bridge(object):
         if not self._ready:
             self._ready = True
             self.emit('ready')
+            self.remove_event('ready')

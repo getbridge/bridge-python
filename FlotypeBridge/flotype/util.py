@@ -45,13 +45,15 @@ def set_log_level(options):
     logging.basicConfig(level=log_level)
 
 
-def is_nonprimitive(obj):
-    return isinstance(obj, reference.Reference) or callable(obj)
+def is_nonprimitive(bridge, obj):
+    return isinstance(obj, reference.Reference) or callable(obj) \
+        or isinstance(obj, bridge.Service) or isinstance(obj, list) \
+        or isinstance(obj, dict)
 
 
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
-        return is_nonprimitive(val)
+        return is_nonprimitive(bridge, val)
             
     if isinstance(obj, dict) or isinstance(obj, list):
         for container, key, val in deep_scan(obj, atomic_matcher):
@@ -65,7 +67,7 @@ def serialize(bridge, obj):
         else:
             handler = Callback(obj)
             return bridge._store_object(handler, find_ops(handler))._to_dict()
-    elif not is_primitive(obj):
+    elif is_nonprimitive(bridge, obj):
         return bridge._store_object(obj, find_ops(obj))._to_dict()
     else:
         logging.warn('Object not serializable')
