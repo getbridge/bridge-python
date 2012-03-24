@@ -85,7 +85,7 @@ class Bridge(object):
         self._events = defaultdict(list)
 
         if callback:
-            self.ready(callback)
+            self.on('ready', callback)
 
     def _execute(self, address, args):
         obj = self._store[address[2]]
@@ -95,7 +95,7 @@ class Bridge(object):
     def _store_object(self, handler, ops):
         name = util.generate_guid()
         self._store[name] = handler
-        chain = ['client', self._connection.client_id, name]
+        chain = ['client', self._connection.id_promise, name]
         return reference.Reference(self, chain, ops)
 
     def on(self, name, func):
@@ -140,12 +140,10 @@ class Bridge(object):
 
     def _send(self, args, destination):
         args = list(args)
-        self._connection.send_command('SEND',
-                {
-                    'args': args,
-                    'destination': destination,
-                }
-        )
+        self._connection.send_command('SEND', {
+            'args': args,
+            'destination': destination,
+        })
 
     def publish_service(self, name, handler, callback=None):
         '''Publish a service to Bridge.
@@ -170,7 +168,7 @@ class Bridge(object):
         @param name The service name.
         @return An opaque reference to a service.
         '''
-        # Diverges from JS implementation because of catch-all getters
+        # Diverges from JS implementation because of catch-all getters.
         return reference.Reference(self, ['named', name, name])
 
     def get_channel(self, name):
@@ -179,9 +177,9 @@ class Bridge(object):
         @param name The name of the channel.
         @return An opaque reference to a channel.
         '''
+        # Diverges from JS implementation because of catch-all getters.
         self._connection.send_command('GETCHANNEL', {'name': name})
         object_id = 'channel:' + name
-        # Diverges from JS implementation because of catch-all getters
         return reference.Reference(self, ['channel', name, object_id])
 
     def join_channel(self, name, handler, callback=None):
@@ -214,21 +212,27 @@ class Bridge(object):
         '''Entry point into the Bridge event loop.
 
         func is called when this node has established a connection to a Bridge
-        instance.
+        instance. This function does not return.
 
         @param func Called (with no arguments) after initialization.
         '''
         if not self._ready:
             self.on('ready', func)
+            self.connect()
         else:
             util.wrapped_exec(func, 'Bridge.ready')
 
     def connect(self):
+        '''Entry point into the Bridge event loop.
+
+        This function starts the event loop. It will eventually execute
+        handlers for the 'ready' event. It does not return.
+        '''
+        logging.debug('Bridge.connect called.')
         self._connection.start()
-        return self
 
     def _on_ready(self):
-        logging.info('Handshake complete')
+        logging.info('Handshake complete.')
         if not self._ready:
             self._ready = True
             self.emit('ready')

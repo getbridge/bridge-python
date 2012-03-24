@@ -11,13 +11,22 @@ class UtilError(Exception):
     pass
 
 
+class Promise(object):
+    def __init__(self, root, attr):
+        self.root = root
+        self.attr = attr
+
+    def __str__(self):
+        return getattr(self.root, self.attr, '<EmptyPromise>')
+
+
 class Callback(object):
     def __init__(self, func):
-        # Cannot store it directly in self (will bind method)
-        self._cbDict = {'callback': func}
+        # We need a wrapper object to avoid binding func as a method.
+        self.wrap = (func,)
 
     def callback(self, *args):
-        cb = self._cbDict.get('callback')
+        cb = self.wrap[0]
         cb(*args)
 
 
@@ -76,10 +85,12 @@ def serialize(bridge, obj):
         print(obj)
         raise UtilError('object not serializable.')
 
+
 def generate_guid():
     return ''.join([
         random.choice(string.ascii_letters) for k in range(32)
     ])
+
 
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):
@@ -92,8 +103,10 @@ def deserialize(bridge, obj):
             container[key] = ref
     return obj
 
+
 def ref_matcher(key, val):
     return type(val) == dict and 'ref' in val
+
 
 def deep_scan(obj, matcher):
     iterator = []
