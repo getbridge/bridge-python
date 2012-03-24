@@ -5,11 +5,11 @@ from flotype.bridge import Bridge
 
 bridge = Bridge(log_level=logging.DEBUG, api_key='abcdefgh')
 
-class MsgHandler(bridge.Service):
+class MsgHandler(object):
     def msg(self, name, message):
         print(name + ': ' + message)
 
-class LobbyHandler(bridge.Service):
+class LobbyHandler(object):
     def __init__(self, name):
         self.name = name
         self.lobby = None

@@ -47,8 +47,7 @@ def set_log_level(options):
 
 def is_nonprimitive(bridge, obj):
     return isinstance(obj, reference.Reference) or callable(obj) \
-        or isinstance(obj, bridge.Service) or isinstance(obj, list) \
-        or isinstance(obj, dict)
+        or isinstance(obj, list) or isinstance(obj, dict)
 
 
 def serialize(bridge, obj):

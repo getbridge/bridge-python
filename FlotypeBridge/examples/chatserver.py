@@ -5,7 +5,7 @@ from flotype.bridge import Bridge
 
 bridge = Bridge(log_level=logging.DEBUG, api_key='abcdefgh')
 
-class ChatServer(bridge.Service):
+class ChatServer(object):
     def join(self, name, handler, callback):
         print('Got join request for %s.' % (name))
         bridge.join_channel('lobby', handler, callback)
