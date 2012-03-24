@@ -7,7 +7,7 @@ bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG,
         api_key='abcdefgh', reconnect=True)
 
 
-class Handler(bridge.Service):
+class Handler(object):
     def someFn(self, name, message):
         print(name + ': ' + message)
 

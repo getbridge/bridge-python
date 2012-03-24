@@ -10,12 +10,7 @@ A Python API for bridge clients.
 '''
 
 
-class Service(object):
-    '''Subclassed for type-checking purposes.'''
-    pass
-
-
-class _System(Service):
+class _System(object):
     def __init__(self, bridge):
         self._bridge = bridge
         # XXX: Temporary, until gateway is updated.
@@ -65,7 +60,6 @@ class Bridge(object):
         self._options['host'] = kwargs.get('host')
         self._options['port'] = kwargs.get('port')
         self._options['reconnect'] = kwargs.get('reconnect', True)
-        self.Service = Service
 
         # Correct and set logging level.
         util.set_log_level(self._options)
