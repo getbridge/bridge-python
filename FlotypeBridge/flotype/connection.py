@@ -97,15 +97,15 @@ class Connection(object):
 
     def wait(self):
         self.stream.read_bytes(4, self.header_handler)
-        
+
     def header_handler(self, data):
         size = struct.unpack('>I', data)[0]
         self.stream.read_bytes(size, self.body_handler)
-        
+
     def body_handler(self, data):
         self.on_message(to_unicode(data))
         self.wait()
-        
+
     def _connect_on_message(self, msg):
         logging.info('Received clientId and secret.')
         ids = msg.split('|')
@@ -116,7 +116,7 @@ class Connection(object):
             self.on_message = self._process_message
             self.process_queue()
             self.bridge._on_ready()
-            
+
     def _process_message(self, msg):
         try:
             obj = json.loads(msg)

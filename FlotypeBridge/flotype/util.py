@@ -12,6 +12,7 @@ try:
 except NameError:
     pass
 
+
 class Promise(object):
     def __init__(self, root, attr):
         self.root = root
@@ -57,7 +58,7 @@ def is_primitive(obj):
 def serialize(bridge, obj):
     def atomic_matcher(key, val):
         return not is_primitive(val)
-            
+
     if type(obj) in (list, dict):
         for container, key, val in deep_scan(obj, atomic_matcher):
             container[key] = serialize(bridge, val)
