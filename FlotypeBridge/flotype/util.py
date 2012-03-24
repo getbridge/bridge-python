@@ -6,6 +6,13 @@ import traceback
 
 from flotype import reference
 
+func_types = set((
+    types.FunctionType, 
+    types.MethodType,
+    types.BuiltinFunctionType,
+    types.BuiltinMethodType
+))
+
 
 class UtilError(Exception):
     pass
@@ -50,9 +57,7 @@ def set_log_level(options):
 
 
 def is_function(obj):
-    return type(obj) in (
-        types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType
-    )
+    return type(obj) in func_types
 
 
 def is_primitive(obj):
