@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-from flotype import util, connection, reference
+from flotype import util, connection, reference, serializer
 
 '''
 @package bridge
@@ -57,6 +57,7 @@ class Bridge(object):
         obj = self._store[address[2]]
         try:
             func = getattr(obj, address[3])
+            func(*args)
         except AttributeError:
             logging.warn('Could not find object to handle ' + '.'.join(address))
 
@@ -87,7 +88,7 @@ class Bridge(object):
         '''
         if name in self._events:
             for func in self._events[name]:
-                util.wrapped_exec(func, 'Bridge.emit', *args)
+                func(*args)
 
     def clear_event(self, name):
         '''Removes the callbacks for the given event.
@@ -99,7 +100,7 @@ class Bridge(object):
     def _send(self, args, destination):
         args = list(args)
         self._connection.send_command('SEND', {
-            'args': args,
+            'args': serializer.serialize(self, args),
             'destination': destination,
         })
 
@@ -117,7 +118,7 @@ class Bridge(object):
             self._store[name] = handler
             data = {'name': name}
             if callback:
-                data['callback'] = callback
+                data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
 
     def get_service(self, name):
@@ -147,9 +148,9 @@ class Bridge(object):
         @param callback Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        data = {'name': name, 'handler': handler}
+        data = {'name': name, 'handler': serializer.serialize(self, handler)}
         if callback:
-            data['callback'] = callback
+            data['callback'] = serializer.serialize(self, callback)
         self._connection.send_command('JOINCHANNEL', data)
 
     def leave_channel(self, name, handler, callback=None):
@@ -160,9 +161,9 @@ class Bridge(object):
         @param callback Called (with no arguments) after the handler has been
         attached to the channel.
         '''
-        data = {'name': name, 'handler': handler}
+        data = {'name': name, 'handler': serializer.serialize(self, handler)}
         if callback:
-            data['callback'] = callback
+            data['callback'] = serializer.serialize(self, callback)
         self._connection.send_command('LEAVECHANNEL', data)
 
     def ready(self, func):
@@ -178,7 +179,7 @@ class Bridge(object):
         else:
             func()
 
-    def connect(self, callback):
+    def connect(self, callback=None):
         '''Entry point into the Bridge event loop.
 
         This function starts the event loop. It will eventually execute

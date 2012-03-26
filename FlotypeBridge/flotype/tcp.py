@@ -14,12 +14,12 @@ class Tcp(object):
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.socket)
         server = (self.connection.options['host'], self.connection.options['port'])
-        self.stream.connect(server, self.connection.onopen)
+        self.stream.connect(server, self.onopen)
         self.stream.set_close_callback(self.connection.onclose)
-        self.wait()
 
     def onopen(self):
         self.connection.onopen(self)
+        self.wait()
     
     def wait(self):
         self.stream.read_bytes(4, self.header_handler)
@@ -29,8 +29,9 @@ class Tcp(object):
         self.stream.read_bytes(size, self.body_handler)
 
     def body_handler(self, data):
-        self.connection.onmessage(to_unicode(data), sock)
+        self.connection.onmessage({'data': to_unicode(data)}, self)
         self.wait()
 
     def send(self, arg):
-        self.stream.write(struct.pack('>I', len(data)) + arg)
+        arg = utf8(arg)
+        self.stream.write(struct.pack('>I', len(arg)) + arg)

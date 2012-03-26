@@ -10,7 +10,7 @@ from tornado import ioloop, iostream
 from tornado.escape import utf8, to_unicode
 from tornado.httpclient import HTTPClient, HTTPError
 
-from flotype import util
+from flotype import util, serializer, tcp
 
 
 class Connection(object):
@@ -23,11 +23,15 @@ class Connection(object):
 
         # Preconnect buffer
         self.sock_buffer = SockBuffer()
+        self.sock = self.sock_buffer
         
         self.loop = ioloop.IOLoop.instance()
         
         # Connection configuration.
         self.interval = 400
+        
+        self.client_id = None
+        self.secret = None
         
         
     def redirector(self):
@@ -58,7 +62,6 @@ class Connection(object):
 
     def reconnect(self):
         logging.info('Attempting reconnect')
-        self.onmessage = self.onconnectmessage
         if self.interval < 32678:
             delta = timedelta(milliseconds=self.interval)
             self.loop.add_timeout(delta, self.establish_connection)
@@ -66,7 +69,8 @@ class Connection(object):
 
     def establish_connection(self):
         logging.info('Starting TCP connection')
-        Tcp(self)
+        self.onmessage = self.onconnectmessage
+        tcp.Tcp(self)
   
     def onconnectmessage(self, message, sock):
         logging.info('Received clientId and secret')
@@ -79,17 +83,17 @@ class Connection(object):
             self.sock = sock
             self.onmessage = self.process_message
             if not self.bridge._ready:
-              self.bridge._ready = true
+              self.bridge._ready = True
               self.bridge.emit('ready')
 
     def process_message(self, message, sock):
-        logging.info('Received %s', msg)
+        logging.info('Received %s', message['data'])
         try:
-            obj = util.parse(message)
+            obj = util.parse(message['data'])
         except:
             logging.warn('Message parsing failed')
             return
-        util.deserialize(self.bridge, obj)
+        serializer.unserialize(self.bridge, obj)
         destination = obj.get('destination', None)
         if not destination:
             logging.warn('No destination in message')
