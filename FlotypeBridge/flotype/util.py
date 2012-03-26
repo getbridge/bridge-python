@@ -72,7 +72,12 @@ def generate_guid():
     return ''.join([
         random.choice(string.ascii_letters) for k in range(32)
     ])
+    
+def stringify(val):
+    return json.dumps(val, default=str)
 
+def parse(val):
+    return json.loads(val)
 
 def deserialize(bridge, obj):
     for container, key, ref in deep_scan(obj, ref_matcher):

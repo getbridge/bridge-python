@@ -10,33 +10,10 @@ A Python API for bridge clients.
 '''
 
 
-class _System(object):
-    def __init__(self, bridge):
-        self._bridge = bridge
-        # XXX: Temporary, until gateway is updated.
-        self.hook_channel_handler = self.hookChannelHandler
-
-    def hookChannelHandler(self, name, handler, func=None):
-        chain = ['channel', name, 'channel:' + name]
-        self._bridge._store['channel:' + name] = handler._service
-        if func:
-            func(handler._service, name)
-
-    def getService(self, name, func):
-        if name in self._bridge._store:
-            func(self._bridge._store[name], name)
-        else:
-            func(None, name)
-
-    def remoteError(self, msg):
-        logging.warning(msg)
-        self._bridge.emit('remote_error', msg)
-
-
 class Bridge(object):
     '''Interface to the Bridge server.'''
 
-    def __init__(self, callback=None, **kwargs):
+    def __init__(self, **kwargs):
         '''Initialize Bridge.
 
         @param callback Called when the event loop starts. (Optional.)
@@ -55,16 +32,16 @@ class Bridge(object):
         self._options = {}
         self._options['api_key'] = kwargs.get('api_key')
         self._options['log'] = kwargs.get('log', logging.WARNING)
-        logging.basicConfig(level=self._options['log'])
-        redirector = kwargs.get('redirector', 'http://redirector.flotype.com')
-        self._options['redirector'] = redirector
+        self._options['redirector'] = kwargs.get('redirector', 'http://redirector.flotype.com')
         self._options['host'] = kwargs.get('host')
         self._options['port'] = kwargs.get('port')
         self._options['reconnect'] = kwargs.get('reconnect', True)
 
+        util.set_log_level(self._options['log'])
+        
         # Manage objects containing shared references.
         self._store = {
-            'system': _System(self)
+            'system': _SystemService(self)
         }
 
         # Indicate whether the client is ready to send messages.
@@ -76,19 +53,17 @@ class Bridge(object):
         # Store event handlers.
         self._events = defaultdict(list)
 
-        if callback:
-            self.on('ready', callback)
-
     def _execute(self, address, args):
         obj = self._store[address[2]]
-        func = getattr(obj, address[3])
-        util.wrapped_exec(func, 'Bridge.execute', *args)
+        try:
+            func = getattr(obj, address[3])
+        except AttributeError:
+            logging.warn('Could not find object to handle ' + '.'.join(address))
 
     def _store_object(self, handler, ops):
         name = util.generate_guid()
         self._store[name] = handler
-        chain = ['client', self._connection.id_promise, name]
-        return reference.Reference(self, chain, ops)
+        return reference.Reference(self, ['client', self._connection.client_id, name], ops)
 
     def on(self, name, func):
         '''Registers a callback for the specified event.
@@ -114,21 +89,12 @@ class Bridge(object):
             for func in self._events[name]:
                 util.wrapped_exec(func, 'Bridge.emit', *args)
 
-    def remove_event(self, name):
+    def clear_event(self, name):
         '''Removes the callbacks for the given event.
 
         @param name Name of an event.
         '''
         self._events[name] = []
-
-    def add_callback(self, func, delta):
-        '''Inserts a callback into the event lop, to be run
-        after some time delta.
-
-        @param func Any function of no arguments.
-        @param delta A timedelta or exact datetime object.
-        '''
-        self._connection.loop.add_timeout(delta, func)
 
     def _send(self, args, destination):
         args = list(args)
@@ -171,8 +137,7 @@ class Bridge(object):
         '''
         # Diverges from JS implementation because of catch-all getters.
         self._connection.send_command('GETCHANNEL', {'name': name})
-        object_id = 'channel:' + name
-        return reference.Reference(self, ['channel', name, object_id])
+        return reference.Reference(self, ['channel', name, 'channel:' + name])
 
     def join_channel(self, name, handler, callback=None):
         '''Register a handler with a channel.
@@ -210,22 +175,37 @@ class Bridge(object):
         '''
         if not self._ready:
             self.on('ready', func)
-            self.connect()
         else:
-            util.wrapped_exec(func, 'Bridge.ready')
+            func()
 
-    def connect(self):
+    def connect(self, callback):
         '''Entry point into the Bridge event loop.
 
         This function starts the event loop. It will eventually execute
         handlers for the 'ready' event. It does not return.
         '''
-        logging.debug('Bridge.connect called.')
+        if callback:
+            ready(callback)
         self._connection.start()
+            
+class _SystemService(object):
+    def __init__(self, bridge):
+        self._bridge = bridge
+        # XXX: Temporary, until gateway is updated.
+        self.hook_channel_handler = self.hookChannelHandler
 
-    def _on_ready(self):
-        logging.info('Handshake complete.')
-        if not self._ready:
-            self._ready = True
-            self.emit('ready')
-            self.remove_event('ready')
+    def hookChannelHandler(self, name, handler, func=None):
+        chain = ['channel', name, 'channel:' + name]
+        self._bridge._store['channel:' + name] = handler._service
+        if func:
+            func(handler._service, name)
+
+    def getService(self, name, func):
+        if name in self._bridge._store:
+            func(self._bridge._store[name], name)
+        else:
+            func(None, name)
+
+    def remoteError(self, msg):
+        logging.warning(msg)
+        self._bridge.emit('remote_error', msg)
