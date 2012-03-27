@@ -3,7 +3,7 @@
 import logging
 from flotype.bridge import Bridge 
 
-bridge = Bridge(log_level=logging.DEBUG, api_key='abcdefgh')
+bridge = Bridge(log=5, api_key='abcdefgh')
 
 class ChatServer(object):
     def join(self, name, handler, callback):
@@ -17,3 +17,4 @@ def start_server():
     bridge.publish_service('chatty', chat, on_client_join)
 
 bridge.ready(start_server)
+bridge.connect()
