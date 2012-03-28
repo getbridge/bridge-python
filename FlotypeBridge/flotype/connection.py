@@ -15,25 +15,24 @@ from flotype import util, serializer, tcp
 
 class Connection(object):
     def __init__(self, bridge):
-        # Set associated bridge object.
+        # Set associated bridge object
         self.bridge = bridge
 
-        # Set options.
         self.options = bridge._options
 
         # Preconnect buffer
         self.sock_buffer = SockBuffer()
         self.sock = self.sock_buffer
         
+        # Create IO loop
         self.loop = ioloop.IOLoop.instance()
         
-        # Connection configuration.
+        # Connection configuration
         self.interval = 400
-        
         self.client_id = None
         self.secret = None
         
-        
+    # Contact redirector for host and port
     def redirector(self):
         client = HTTPClient()
         try:
@@ -65,23 +64,34 @@ class Connection(object):
         if self.interval < 32678:
             delta = timedelta(milliseconds=self.interval)
             self.loop.add_timeout(delta, self.establish_connection)
+            # Grow timeout for next reconnect attempt
             self.interval *= 2
 
     def establish_connection(self):
         logging.info('Starting TCP connection')
+        # Set onmessage handler to handle CONNECT response
         self.onmessage = self.onconnectmessage
         tcp.Tcp(self)
   
     def onconnectmessage(self, message, sock):
         logging.info('Received clientId and secret')
+        # Parse for client id and secret
         ids = message['data'].split('|')
         if len(ids) != 2:
+            # Handle message normally if not a correct CONNECT response
             self.process_message(message, sock)
         else:
             self.client_id, self.secret = ids
+            # Reset reconnect interval
+            self.interval = 400
+            # Send preconnect queued messages
             self.sock.process_queue(sock, self.client_id)
+            # Set connection socket to connected socket
             self.sock = sock
+            # Set onmessage handler to handle standard messages
             self.onmessage = self.process_message
+            logging.info('Handshake complete')
+            # Trigger ready callback
             if not self.bridge._ready:
               self.bridge._ready = True
               self.bridge.emit('ready')
@@ -93,7 +103,9 @@ class Connection(object):
         except:
             logging.warn('Message parsing failed')
             return
+        # Convert serialized ref objects to callable references
         serializer.unserialize(self.bridge, obj)
+        # Extract RPC destination address
         destination = obj.get('destination', None)
         if not destination:
             logging.warn('No destination in message')
@@ -113,6 +125,7 @@ class Connection(object):
    
     def onclose(self):
         logging.error('Connection closed')
+        # Restore preconnect buffer as socket connection
         self.sock = self.sock_buffer
         if self.options['reconnect']:
             self.reconnect()
@@ -126,11 +139,13 @@ class Connection(object):
         if not (self.options.get('host') and self.options.get('port')):
             self.redirector()
         else:
+            # Host and port are specified
             self.establish_connection()
         self.loop.start()
 
 class SockBuffer (object):
     def __init__(self):
+        # Buffer for preconnect messages
         self.buffer = deque()
         
     def send(self, msg):
@@ -138,6 +153,7 @@ class SockBuffer (object):
         
     def process_queue(self, sock, client_id):
         while len(self.buffer):
+            # Replace null client ids with actual client_id after handshake
             sock.send(self.buffer.popleft().replace('"client", null', '"client", "' + client_id + '"'))
         self.buffer = deque()
         

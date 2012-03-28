@@ -39,37 +39,41 @@ class Bridge(object):
 
         util.set_log_level(self._options['log'])
         
-        # Manage objects containing shared references.
+        # Initialize system service call
         self._store = {
             'system': _SystemService(self)
         }
 
-        # Indicate whether the client is ready to send messages.
+        # Indicates whether server is connected and handshaken
         self._ready = False
 
-        # Initialize communication layer.
+        # Create connection object
         self._connection = connection.Connection(self)
 
-        # Store event handlers.
+        # Store event handlers
         self._events = defaultdict(list)
 
     def _execute(self, address, args):
+        # Retrieve stored handler
         obj = self._store[address[2]]
         try:
+            # Retrieve function in handler
             func = getattr(obj, address[3])
             func(*args)
         except AttributeError:
             logging.warn('Could not find object to handle ' + '.'.join(address))
 
     def _store_object(self, handler, ops):
+        # Generate random id for callback being stored
         name = util.generate_guid()
         self._store[name] = handler
+        # Return reference to stored callback
         return reference.Reference(self, ['client', self._connection.client_id, name], ops)
 
     def on(self, name, func):
         '''Registers a callback for the specified event.
 
-        Event names and arity;
+        Event names and arity
         ready/0
         disconnect/0
         reconnect/0
@@ -127,7 +131,6 @@ class Bridge(object):
         @param name The service name.
         @return An opaque reference to a service.
         '''
-        # Diverges from JS implementation because of catch-all getters.
         return reference.Reference(self, ['named', name, name])
 
     def get_channel(self, name):
@@ -136,7 +139,7 @@ class Bridge(object):
         @param name The name of the channel.
         @return An opaque reference to a channel.
         '''
-        # Diverges from JS implementation because of catch-all getters.
+        # Send GETCHANNEL command in order to establih link for channel if client is not member
         self._connection.send_command('GETCHANNEL', {'name': name})
         return reference.Reference(self, ['channel', name, 'channel:' + name])
 
@@ -186,20 +189,21 @@ class Bridge(object):
         handlers for the 'ready' event. It does not return.
         '''
         if callback:
-            ready(callback)
+            self.ready(callback)
         self._connection.start()
             
 class _SystemService(object):
     def __init__(self, bridge):
         self._bridge = bridge
-        # XXX: Temporary, until gateway is updated.
-        self.hook_channel_handler = self.hookChannelHandler
 
     def hookChannelHandler(self, name, handler, func=None):
-        chain = ['channel', name, 'channel:' + name]
-        self._bridge._store['channel:' + name] = handler._service
+        # Retrieve requested handler
+        obj = self._bridge._store[handler._address[2]]
+        # Store under channel name
+        self._bridge._store['channel:' + name] = obj
         if func:
-            func(handler._service, name)
+            # Send callback with reference to channel and handler operations        
+            func(reference.Reference(self, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
 
     def getService(self, name, func):
         if name in self._bridge._store:
