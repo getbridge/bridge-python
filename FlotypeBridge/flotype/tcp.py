@@ -7,9 +7,7 @@ from tornado.escape import utf8, to_unicode
 
 class Tcp(object):
     def __init__(self, connection):
-   
         self.connection = connection
-        
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.stream = iostream.IOStream(self.socket)
