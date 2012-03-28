@@ -3,7 +3,7 @@ import struct
 import socket
 
 from tornado import iostream
-from tornado.escape import utf8, to_unicode
+from tornado.escape import utf8, native_str
 
 class Tcp(object):
     def __init__(self, connection):
@@ -34,7 +34,7 @@ class Tcp(object):
 
     def body_handler(self, data):
         # Call message handler
-        self.connection.onmessage({'data': to_unicode(data)}, self)
+        self.connection.onmessage({'data': native_str(data)}, self)
         # Await next message
         self.wait()
 
@@ -42,3 +42,4 @@ class Tcp(object):
         arg = utf8(arg)
         # Prepend length header to message
         self.stream.write(struct.pack('>I', len(arg)) + arg)
+

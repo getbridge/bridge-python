@@ -7,7 +7,7 @@ from collections import deque
 from datetime import timedelta
 
 from tornado import ioloop, iostream
-from tornado.escape import utf8, to_unicode
+from tornado.escape import native_str
 from tornado.httpclient import HTTPClient, HTTPError
 
 from flotype import util, serializer, tcp
@@ -45,10 +45,9 @@ class Connection(object):
             return
 
         try:
-            body = json.loads(res.body).get('data')
+            body = util.parse(res.body).get('data')
         except:
             logging.error('Unable to parse redirector response %s', res.body)
-            client.close()
             return
 
         if not ('bridge_port' in body and 'bridge_host' in body):
@@ -121,7 +120,7 @@ class Connection(object):
                 'api_key': self.options['api_key'],
             }
         })
-        sock.send(msg)
+        sock.send(native_str(msg))
    
     def onclose(self):
         logging.error('Connection closed')
@@ -132,8 +131,8 @@ class Connection(object):
 
     def send_command(self, command, data):
         msg = util.stringify({'command': command, 'data': data})
-        logging.info('Sending ' + msg)
-        self.sock.send(msg)
+        logging.info('Sending %s', msg)
+        self.sock.send(native_str(msg))
 
     def start(self):
         if not (self.options.get('host') and self.options.get('port')):
@@ -149,7 +148,7 @@ class SockBuffer (object):
         self.buffer = deque()
         
     def send(self, msg):
-        self.buffer.append(msg)
+        self.buffer.append(native_str(msg))
         
     def process_queue(self, sock, client_id):
         while len(self.buffer):

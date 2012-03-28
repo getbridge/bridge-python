@@ -17,3 +17,4 @@ def start_server():
     bridge.publish_service('chatserver', chat, on_client_join)
 
 bridge.connect(start_server)
+
