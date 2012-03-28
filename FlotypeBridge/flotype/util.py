@@ -5,6 +5,8 @@ import logging
 import traceback
 import json
 
+from tornado.escape import utf8, native_str
+
 from flotype import reference
 
 primitives = set((int, str, bool, float, tuple, list, dict, type(None)))
@@ -34,10 +36,10 @@ def generate_guid():
     ])
     
 def stringify(val):
-    return json.dumps(val, default=str)
+    return utf8(json.dumps(val, default=str))
 
 def parse(val):
-    return json.loads(val)
+    return json.loads(native_str(val))
 
 def ref_matcher(key, val):
     return type(val) == dict and 'ref' in val
