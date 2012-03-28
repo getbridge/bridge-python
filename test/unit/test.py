@@ -7,7 +7,6 @@ suite = unittest.TestSuite([test_util.TestUtil('test_generate_guid'),
                             test_util.TestUtil('test_generate_guid'),
                             test_serializer.TestSerializer('test_serialize'),
                             test_serializer.TestSerializer('test_unserialize'),
-                            test_tcp.TestTcp('test_receive_data'),
                             test_reference.TestReference('test_reference')])
 suite.run(unittest.TestResult())
 unittest.TextTestRunner().run(suite)

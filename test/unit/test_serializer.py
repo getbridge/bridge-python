@@ -8,12 +8,13 @@ import unittest
 class TestSerializer(unittest.TestCase):
     def test_serialize(self):
         dummy = BridgeDummy()
+        test1 = Test1()
         test2 = Test2()
         test3 = Test3()
         test4 = lambda:1
         obj = {
             'a': {
-                'b': Test1
+                'b': test1
                 },
             'c': 5,
             'd': True,
@@ -25,9 +26,9 @@ class TestSerializer(unittest.TestCase):
             }
         ser = serializer.serialize(dummy, obj)
 
-        self.assertTrue([Test1, ['a']] in dummy.stored)
+        self.assertTrue([test1, ['a', 'b']] in dummy.stored)
         self.assertTrue([test2, ['c']] in dummy.stored)
-        self.assertTrue([test3, ['d', 'e']] in dummy.stored)
+        self.assertTrue([test3, ['c', 'd', 'e']] in dummy.stored)
 
         found = False
         for x in dummy.stored:

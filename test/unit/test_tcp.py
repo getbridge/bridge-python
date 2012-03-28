@@ -3,6 +3,7 @@ from flotype import tcp as net
 
 from connection_dummy import ConnectionDummy
 import unittest
+import struct
  
 class TestTcp(unittest.TestCase):
   def test_receive_data(self):
