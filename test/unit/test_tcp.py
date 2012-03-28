@@ -11,7 +11,7 @@ class TestTcp(unittest.TestCase):
     tcp = net.Tcp(dummy)
     
     messages = ['abc', 'efghij', 'klmnop', 'rs', 't', 'uvwxyz']
-    messages_packed = map(lambda arg: [len(arg)].pack("N") + arg, messages)
+    messages_packed = map(lambda arg: struct.pack('>I', len(arg)) + arg, messages)
     message = ''.join(messages_packed)
     
     messages_packed.map(lambda arg: tcp.receive_data(arg))
