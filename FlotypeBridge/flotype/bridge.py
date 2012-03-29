@@ -69,7 +69,7 @@ class Bridge(object):
     def on(self, name, func):
         '''Registers a callback for the specified event.
 
-        Event names and arity;
+        Event names and arity
         ready/0
         disconnect/0
         reconnect/0

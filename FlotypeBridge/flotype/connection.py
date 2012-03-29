@@ -68,20 +68,21 @@ class Connection(object):
             self.interval *= 2
 
     def establish_connection(self):
-        logging.info('Starting TCP connection')
+        logging.info('Starting TCP connection %s, %s', self.options['host'], self.options['port'])
         self.onmessage = self.onconnectmessage
         tcp.Tcp(self)
   
     def onconnectmessage(self, message, sock):
-        logging.info('Received clientId and secret')
         ids = message['data'].split('|')
         if len(ids) != 2:
             self.process_message(message, sock)
         else:
+            logging.info('client_id received, %s', ids[0])
             self.client_id, self.secret = ids
             self.sock.process_queue(sock, self.client_id)
             self.sock = sock
             self.onmessage = self.process_message
+            logging.info('Handshake complete')
             if not self.bridge._ready:
               self.bridge._ready = True
               self.bridge.emit('ready')
@@ -119,7 +120,7 @@ class Connection(object):
 
     def send_command(self, command, data):
         msg = util.stringify({'command': command, 'data': data})
-        logging.info('Sending ' + msg)
+        logging.info('Sending %s', msg)
         self.sock.send(msg)
 
     def start(self):
