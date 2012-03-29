@@ -186,7 +186,7 @@ class Bridge(object):
         handlers for the 'ready' event. It does not return.
         '''
         if callback:
-            ready(callback)
+            self.ready(callback)
         self._connection.start()
             
 class _SystemService(object):
