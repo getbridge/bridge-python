@@ -92,12 +92,12 @@ class Connection(object):
         try:
             obj = util.parse(message['data'])
         except:
-            logging.warn('Message parsing failed')
+            logging.error('Message parsing failed')
             return
         serializer.unserialize(self.bridge, obj)
         destination = obj.get('destination', None)
         if not destination:
-            logging.warn('No destination in message')
+            logging.warning('No destination in message %s', obj)
             return
         self.bridge._execute(destination._address, obj['args'])
    
@@ -113,7 +113,7 @@ class Connection(object):
         sock.send(msg)
    
     def onclose(self):
-        logging.error('Connection closed')
+        logging.warning('Connection closed')
         self.sock = self.sock_buffer
         if self.options['reconnect']:
             self.reconnect()

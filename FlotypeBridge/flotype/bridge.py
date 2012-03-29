@@ -59,7 +59,7 @@ class Bridge(object):
             func = getattr(obj, address[3])
             func(*args)
         except AttributeError:
-            logging.warn('Could not find object to handle ' + '.'.join(address))
+            logging.warning('Could not find object to handle, %s', address)
 
     def _store_object(self, handler, ops):
         name = util.generate_guid()
@@ -113,7 +113,7 @@ class Bridge(object):
         published.
         '''
         if name == 'system':
-            logging.error('Invalid service name: "%s"' % (name))
+            logging.error('Invalid service name: %s', name)
         else:
             self._store[name] = handler
             data = {'name': name}
