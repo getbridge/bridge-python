@@ -67,8 +67,9 @@ class Connection(object):
             self.interval *= 2
 
     def establish_connection(self):
-        logging.info('Starting TCP connection')
         # Set onmessage handler to handle CONNECT response
+        logging.info('Starting TCP connection %s, %s', self.options['host'], self.options['port'])
+
         self.onmessage = self.onconnectmessage
         tcp.Tcp(self)
   
@@ -80,6 +81,7 @@ class Connection(object):
             # Handle message normally if not a correct CONNECT response
             self.process_message(message, sock)
         else:
+            logging.info('client_id received, %s', ids[0])
             self.client_id, self.secret = ids
             # Reset reconnect interval
             self.interval = 400
@@ -100,14 +102,14 @@ class Connection(object):
         try:
             obj = util.parse(message['data'])
         except:
-            logging.warn('Message parsing failed')
+            logging.error('Message parsing failed')
             return
         # Convert serialized ref objects to callable references
         serializer.unserialize(self.bridge, obj)
         # Extract RPC destination address
         destination = obj.get('destination', None)
         if not destination:
-            logging.warn('No destination in message')
+            logging.warning('No destination in message %s', obj)
             return
         self.bridge._execute(destination._address, obj['args'])
    
@@ -123,8 +125,8 @@ class Connection(object):
         sock.send(native_str(msg))
    
     def onclose(self):
-        logging.error('Connection closed')
         # Restore preconnect buffer as socket connection
+        logging.warning('Connection closed')
         self.sock = self.sock_buffer
         if self.options['reconnect']:
             self.reconnect()
