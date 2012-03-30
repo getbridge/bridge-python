@@ -28,7 +28,7 @@ class Bridge(object):
             based connect.
             - reconnect Defaults to True to enable reconnects.
         '''
-        # Set configuration options.
+        # Set configuration options
         self._options = {}
         self._options['api_key'] = kwargs.get('api_key')
         self._options['log'] = kwargs.get('log', logging.WARNING)
@@ -61,7 +61,7 @@ class Bridge(object):
             func = getattr(obj, address[3])
             func(*args)
         except AttributeError:
-            logging.warn('Could not find object to handle ' + '.'.join(address))
+            logging.warn('Could not find object to handle %s', '.'.join(address))
 
     def _store_object(self, handler, ops):
         # Generate random id for callback being stored
@@ -117,7 +117,7 @@ class Bridge(object):
         published.
         '''
         if name == 'system':
-            logging.error('Invalid service name: "%s"' % (name))
+            logging.error('Invalid service name: %s', name)
         else:
             self._store[name] = handler
             data = {'name': name}
