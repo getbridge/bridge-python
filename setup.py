@@ -9,7 +9,7 @@ setup(
     url='http://pypi.python.org/pypi/FlotypeBridge/',
     license='LICENSE.txt',
     description='A Python API for the Flotype Bridge service.',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     requires=[
         "tornado (>= 2.2)",
     ]
