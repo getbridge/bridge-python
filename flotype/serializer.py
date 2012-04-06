@@ -50,7 +50,9 @@ def unserialize(bridge, obj):
         # Create reference
         ref = reference.Reference(bridge, address, ops)
         if ref._operations == ['callback']:
-            container[key] = ref.callback
+            obj = ref.callback
+            obj.callback = ref.callback
+            container[key] = obj
         else:
             container[key] = ref
     return obj
