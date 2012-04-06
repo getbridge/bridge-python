@@ -3,7 +3,7 @@
 import logging
 from flotype.bridge import Bridge 
 
-bridge = Bridge(log=5, api_key='abcdefgh')
+bridge = Bridge(log=3, api_key='abcdefgh')
 
 class MsgHandler(object):
     def msg(self, name, message):
@@ -23,8 +23,7 @@ class LobbyHandler(object):
 
 def start_client():
     lobby = LobbyHandler('Vedant')
-    chat = bridge.get_service('chatty')
+    chat = bridge.get_service('chatserver')
     chat.join('lobby', MsgHandler(), lobby)
 
-bridge.ready(start_client)
-bridge.connect()
+bridge.connect(start_client)

@@ -28,7 +28,7 @@ class Bridge(object):
             based connect.
             - reconnect Defaults to True to enable reconnects.
         '''
-        # Set configuration options.
+        # Set configuration options
         self._options = {}
         self._options['api_key'] = kwargs.get('api_key')
         self._options['log'] = kwargs.get('log', logging.WARNING)
@@ -56,12 +56,16 @@ class Bridge(object):
     def _execute(self, address, args):
         # Retrieve stored handler
         obj = self._store[address[2]]
-        try:
-            # Retrieve function in handler
-            func = getattr(obj, address[3])
-            func(*args)
-        except AttributeError:
-            logging.warning('Could not find object to handle, %s', address)
+        # Retrieve function in handler
+        func = getattr(obj, address[3], None)
+        if not func:
+            logging.warn('Could not find object to handle %s', '.'.join(address))
+        else:
+            try:
+                func(*args)
+            except:
+                traceback.print_exc()
+                logging.error('Exception while calling %s(%s)', address[3], args)
 
     def _store_object(self, handler, ops):
         # Generate random id for callback being stored

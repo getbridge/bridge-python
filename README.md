@@ -1,5 +1,5 @@
 #Flotype Bridge for Python
-Flotype Bridge enables cross-language RPC for interserver and client-server  communication.
+Flotype Bridge enables cross-language RPC for interserver and client-server communication.
 
 ##Installation
 Quick install: Using the [pip package manager](http://www.pip-installer.org/en/latest/index.html), do `pip install FlotypeBridge`
