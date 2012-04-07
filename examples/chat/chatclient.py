@@ -1,29 +1,16 @@
-#!/usr/bin/python
+from flotype.bridge import Bridge
+    
+bridge = Bridge(api_key='abcdefgh') # new code: using public key
 
-import logging
-from flotype.bridge import Bridge 
+class ChatHandler(object):
+    def message(self, sender, message):
+        print (sender + ':' + message)
+    
+def join_callback(channel, name):
+    print ("Joined channel : " + name)
+    channel.message('steve', 'Flotype Bridge is pretty nifty')
 
-bridge = Bridge(log=3, api_key='abcdefgh')
+auth = bridge.get_service('auth')
+auth.join('flotype-lovers', 'secret123', ChatHandler(), join_callback)
 
-class MsgHandler(object):
-    def msg(self, name, message):
-        print(name + ': ' + message)
-
-class LobbyHandler(object):
-    def __init__(self, name):
-        self.name = name
-        self.lobby = None
-
-    def __call__(self, channel, name):
-        self.lobby = channel
-        self.send('Hello, world.')
-
-    def send(self, message):
-        self.lobby.msg(self.name, message)
-
-def start_client():
-    lobby = LobbyHandler('Vedant')
-    chat = bridge.get_service('chatserver')
-    chat.join('lobby', MsgHandler(), lobby)
-
-bridge.connect(start_client)
+bridge.connect()

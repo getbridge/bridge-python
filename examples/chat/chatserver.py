@@ -1,20 +1,15 @@
-#!/usr/bin/python
+from flotype.bridge import Bridge
 
-import logging
-from flotype.bridge import Bridge 
+class AuthHandler(object):
+  def join(self, room, password, obj, callback):
+    if password == "secret123":
+      print ('Welcome!')
+      # new: join channel using the client's objects
+      bridge.join_channel(room, obj, callback) 
+    else:
+      print ('Sorry!')
 
-bridge = Bridge(log=logging.DEBUG, api_key='abcdefgh')
+bridge = Bridge(api_key='abcdefgh')
+bridge.publish_service('auth', AuthHandler())
 
-class ChatServer(object):
-    def join(self, name, handler, callback):
-        print('Got join request for %s.' % (name))
-        bridge.join_channel('lobby', handler, callback)
-
-def start_server():
-    def on_client_join(lobby):
-        print("Client joined lobby (%s)." % (lobby))
-    chat = ChatServer()
-    bridge.publish_service('chatserver', chat, on_client_join)
-
-bridge.connect(start_server)
-
+bridge.connect()
