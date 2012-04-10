@@ -1,6 +1,6 @@
 from flotype.bridge import Bridge
     
-bridge = Bridge(api_key='abcdefgh') # new code: using public key
+bridge = Bridge(api_key='myapikey') # new code: using public key
 
 class ChatHandler(object):
     def message(self, sender, message):

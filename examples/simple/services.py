@@ -1,5 +1,5 @@
 from flotype.bridge import Bridge 
-bridge = Bridge(api_key='abcdefgh')
+bridge = Bridge(api_key='myapikey')
 
 
 #

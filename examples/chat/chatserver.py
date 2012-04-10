@@ -9,7 +9,7 @@ class AuthHandler(object):
     else:
       print ('Sorry!')
 
-bridge = Bridge(api_key='abcdefgh')
+bridge = Bridge(api_key='myapikey')
 bridge.publish_service('auth', AuthHandler())
 
 bridge.connect()
