@@ -19,6 +19,7 @@ except NameError:
 def is_primitive(obj):
     return type(obj) in primitives
 
+
 def set_log_level(level):
     if level == 3:
         level = logging.INFO
@@ -30,19 +31,24 @@ def set_log_level(level):
         level = logging.CRITICAL
     logging.basicConfig(level=level)
 
+
 def generate_guid():
     return ''.join([
         random.choice(string.ascii_letters) for k in range(32)
     ])
     
+
 def stringify(val):
     return utf8(json.dumps(val, default=str))
+
 
 def parse(val):
     return json.loads(native_str(val))
 
+
 def ref_matcher(key, val):
     return type(val) == dict and 'ref' in val
+
 
 def deep_scan(obj, matcher):
     iterator = []

@@ -1,26 +1,32 @@
-#Flotype Bridge for Python
+# Flotype Bridge for Python
 Flotype Bridge enables cross-language RPC for interserver and client-server communication.
 
-##Installation
-Quick install: Using the [pip package manager](http://www.pip-installer.org/en/latest/index.html), do `pip install FlotypeBridge`
+## Installation
+Quick install:
 
-Source install: 
+	pip install FlotypeBridge
 
-Clone this repository using `git clone git@bitbucket.org:flotype/bridge-python.git`and install using the pip installer
+Source install:
 
-###Dependencies
-[Tornado](http://www.tornadoweb.org) for asynchronous TCP socket connection.
+	git clone git@bitbucket.org:flotype/bridge-python.git
+	cd bridge-python/
+	python setup.py install
 
+## Dependencies
+[Tornado](http://www.tornadoweb.org).
 
-##Documentation and Support
-* API Reference: http://www.flotype.com/resources/api
-* Getting Started: http://www.flotype.com/resources/gettingstarted
+Quick install:
+
+	pip install tornado
+
+## Documentation and Support
+* API Reference: http://flotype.com/docs/api/python/
+* Getting Started: http://www.flotype.com/docs/gettingstarted/python/
 * About Flotype and Flotype Bridge: http://www.flotype.com/
 
 The `examples` directory of this library contains sample applications for Flotype Bridge.
 
 Support is available in #flotype on Freenode IRC or the Flotype Bridge Google Group.
 
-
-##License
-Flotype Bridge is made available under the MIT/X11 license. See LICENSE file for details.
+## License
+Flotype Bridge is made available under the MIT/X11 license. See the LICENSE file for details.

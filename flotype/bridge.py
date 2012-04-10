@@ -16,17 +16,16 @@ class Bridge(object):
     def __init__(self, **kwargs):
         '''Initialize Bridge.
 
-        @param callback Called when the event loop starts. (Optional.)
-        @param kwargs Specify optional config information.
-            - api_key Bridge cloud api key. No default.
-            - log Specifies a log level. Defaults to logging.WARNING.
-            - redirector Bridge redirector. Defaults to
-            http://redirector.flotype.com.
-            - host Bridge host. No default. Set a value to disable redirector
-            based connect.
-            - port Bridge port. No default. Set a value to disable redirector
-            based connect.
-            - reconnect Defaults to True to enable reconnects.
+        @param kwargs: Specify optional config information.
+        @keyword api_key: Bridge cloud api key. No default.
+        @keyword log: Specifies a log level. Defaults to logging.WARNING.
+        @keyword redirector: Bridge redirector. Defaults to
+        http://redirector.flotype.com.
+        @keyword host: Bridge host. No default. Set a value to disable
+        redirector based connect.
+        @keyword port: Bridge port. No default. Set a value to disable
+        redirector based connect.
+        @keyword reconnect: Defaults to True to enable reconnects.
         '''
         # Set configuration options
         self._options = {}
@@ -53,6 +52,123 @@ class Bridge(object):
         # Store event handlers
         self._events = defaultdict(list)
 
+    def on(self, name, func):
+        '''Registers a callback for the specified event.
+
+        Event names and arity
+        ready/0
+        disconnect/0
+        reconnect/0
+        remote_error/1 (msg)
+
+        @param name: The name of the event.
+        @param func: Called when this event is emitted.
+        '''
+        self._events[name].append(func)
+
+    def emit(self, name, *args):
+        '''Triggers an event.
+
+        @param name: The name of the event to trigger.
+        @param args: A list of arguments to the event callback.
+        '''
+        if name in self._events:
+            for func in self._events[name]:
+                func(*args)
+
+    def clear_event(self, name):
+        '''Removes the callbacks for the given event.
+
+        @param name: Name of an event.
+        '''
+        self._events[name] = []
+
+    def publish_service(self, name, handler, callback=None):
+        '''Publish a service to Bridge.
+
+        @param name: The name of the service.
+        @param handler: Any class with a default constructor, or any instance.
+        @param callback: Called (with no arguments) when the service has been
+        published.
+        '''
+        if name == 'system':
+            logging.error('Invalid service name: %s', name)
+        else:
+            self._store[name] = handler
+            data = {'name': name}
+            if callback:
+                data['callback'] = serializer.serialize(self, callback)
+            self._connection.send_command('JOINWORKERPOOL', data)
+
+    def get_service(self, name):
+        '''Fetch a service from Bridge.
+
+        @param name: The service name.
+        @return: An opaque reference to a service.
+        '''
+        return reference.Reference(self, ['named', name, name])
+
+    def get_channel(self, name):
+        '''Fetch a channel from Bridge.
+
+        @param name: The name of the channel.
+        @return: An opaque reference to a channel.
+        '''
+        # Send GETCHANNEL command in order to establih link for channel if client is not member
+        self._connection.send_command('GETCHANNEL', {'name': name})
+        return reference.Reference(self, ['channel', name, 'channel:' + name])
+
+    def join_channel(self, name, handler, callback=None):
+        '''Register a handler with a channel.
+
+        @param name: The name of the channel.
+        @param handler: An opaque reference to a channel.
+        @param callback: Called (with no arguments) after the handler has been
+        attached to the channel.
+        '''
+        data = {'name': name, 'handler': serializer.serialize(self, handler)}
+        if callback:
+            data['callback'] = serializer.serialize(self, callback)
+        self._connection.send_command('JOINCHANNEL', data)
+
+    def leave_channel(self, name, handler, callback=None):
+        '''Remove yourself from a channel.
+
+        @param name: The name of the channel.
+        @param handler: An opaque reference to a channel.
+        @param callback: Called (with no arguments) after the handler has been
+        attached to the channel.
+        '''
+        data = {'name': name, 'handler': serializer.serialize(self, handler)}
+        if callback:
+            data['callback'] = serializer.serialize(self, callback)
+        self._connection.send_command('LEAVECHANNEL', data)
+
+    def ready(self, func):
+        '''Entry point into the Bridge event loop.
+
+        func is called when this node has established a connection to a Bridge
+        instance. This function does not return.
+
+        @param func: Called (with no arguments) after initialization.
+        '''
+        if not self._ready:
+            self.on('ready', func)
+        else:
+            func()
+
+    def connect(self, callback=None):
+        '''Entry point into the Bridge event loop.
+
+        This function starts the event loop. It will eventually execute
+        handlers for the 'ready' event. It does not return.
+
+        @param callback: Called (with no arguments) after initialization.
+        '''
+        if callback:
+            self.ready(callback)
+        self._connection.start()
+
     def _execute(self, address, args):
         # Retrieve stored handler
         obj = self._store[address[2]]
@@ -74,128 +190,13 @@ class Bridge(object):
         # Return reference to stored callback
         return reference.Reference(self, ['client', self._connection.client_id, name], ops)
 
-    def on(self, name, func):
-        '''Registers a callback for the specified event.
-
-        Event names and arity
-        ready/0
-        disconnect/0
-        reconnect/0
-        remote_error/1 (msg)
-
-        @param name The name of the event.
-        @param func Called when this event is emitted.
-        '''
-        self._events[name].append(func)
-
-    def emit(self, name, *args):
-        '''Triggers an event.
-
-        @param name The name of the event to trigger.
-        @param args A list of arguments to the event callback.
-        '''
-        if name in self._events:
-            for func in self._events[name]:
-                func(*args)
-
-    def clear_event(self, name):
-        '''Removes the callbacks for the given event.
-
-        @param name Name of an event.
-        '''
-        self._events[name] = []
-
     def _send(self, args, destination):
         args = list(args)
         self._connection.send_command('SEND', {
             'args': serializer.serialize(self, args),
             'destination': destination,
-        })
+        })            
 
-    def publish_service(self, name, handler, callback=None):
-        '''Publish a service to Bridge.
-
-        @param name The name of the service.
-        @param service Any class with a default constructor, or any instance.
-        @param callback Called (with no arguments) when the service has been
-        published.
-        '''
-        if name == 'system':
-            logging.error('Invalid service name: %s', name)
-        else:
-            self._store[name] = handler
-            data = {'name': name}
-            if callback:
-                data['callback'] = serializer.serialize(self, callback)
-            self._connection.send_command('JOINWORKERPOOL', data)
-
-    def get_service(self, name):
-        '''Fetch a service from Bridge.
-
-        @param name The service name.
-        @return An opaque reference to a service.
-        '''
-        return reference.Reference(self, ['named', name, name])
-
-    def get_channel(self, name):
-        '''Fetch a channel from Bridge.
-
-        @param name The name of the channel.
-        @return An opaque reference to a channel.
-        '''
-        # Send GETCHANNEL command in order to establih link for channel if client is not member
-        self._connection.send_command('GETCHANNEL', {'name': name})
-        return reference.Reference(self, ['channel', name, 'channel:' + name])
-
-    def join_channel(self, name, handler, callback=None):
-        '''Register a handler with a channel.
-
-        @param name The name of the channel.
-        @param handler An opaque reference to a channel.
-        @param callback Called (with no arguments) after the handler has been
-        attached to the channel.
-        '''
-        data = {'name': name, 'handler': serializer.serialize(self, handler)}
-        if callback:
-            data['callback'] = serializer.serialize(self, callback)
-        self._connection.send_command('JOINCHANNEL', data)
-
-    def leave_channel(self, name, handler, callback=None):
-        '''Remove yourself from a channel.
-
-        @param name The name of the channel.
-        @param handler An opaque reference to a channel.
-        @param callback Called (with no arguments) after the handler has been
-        attached to the channel.
-        '''
-        data = {'name': name, 'handler': serializer.serialize(self, handler)}
-        if callback:
-            data['callback'] = serializer.serialize(self, callback)
-        self._connection.send_command('LEAVECHANNEL', data)
-
-    def ready(self, func):
-        '''Entry point into the Bridge event loop.
-
-        func is called when this node has established a connection to a Bridge
-        instance. This function does not return.
-
-        @param func Called (with no arguments) after initialization.
-        '''
-        if not self._ready:
-            self.on('ready', func)
-        else:
-            func()
-
-    def connect(self, callback=None):
-        '''Entry point into the Bridge event loop.
-
-        This function starts the event loop. It will eventually execute
-        handlers for the 'ready' event. It does not return.
-        '''
-        if callback:
-            self.ready(callback)
-        self._connection.start()
-            
 class _SystemService(object):
     def __init__(self, bridge):
         self._bridge = bridge
@@ -218,3 +219,4 @@ class _SystemService(object):
     def remoteError(self, msg):
         logging.warning(msg)
         self._bridge.emit('remote_error', msg)
+
