@@ -105,13 +105,13 @@ class Connection(object):
             logging.error('Message parsing failed')
             return
         # Convert serialized ref objects to callable references
-        serializer.unserialize(self.bridge, obj)
+        serializer.unserialize(self.bridge, obj['args'])
         # Extract RPC destination address
         destination = obj.get('destination', None)
         if not destination:
             logging.warning('No destination in message %s', obj)
             return
-        self.bridge._execute(destination._address, obj['args'])
+        self.bridge._execute(destination['ref'], obj['args'])
    
     def onopen(self, sock):
         logging.info('Beginning handshake')

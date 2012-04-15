@@ -47,14 +47,17 @@ def unserialize(bridge, obj):
     for container, key, ref in util.deep_scan(obj, util.ref_matcher):
         address = ref['ref']
         ops = ref.get('operations', [])
-        # Create reference
-        ref = reference.Reference(bridge, address, ops)
-        if ref._operations == ['callback']:
-            obj = ref.callback
-            obj.callback = ref.callback
-            container[key] = obj
-        else:
-            container[key] = ref
+        if address[1] == bridge._connection.client_id and address[0] == 'client':
+            container[key] = bridge._store[address[2]]
+        else:           
+            # Create reference
+            ref = reference.Reference(bridge, address, ops)
+            if ref._operations == ['callback']:
+                obj = ref.callback
+                obj.callback = ref.callback
+                container[key] = obj
+            else:
+                container[key] = ref
     return obj
 
 
