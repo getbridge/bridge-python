@@ -13,7 +13,8 @@ Source install:
 	python setup.py install
 
 ## Dependencies
-[Tornado](http://www.tornadoweb.org).
+[Tornado](http://www.tornadoweb.org) for asynchronous socket library and
+event loop. (NOT for Tornado web server)
 
 Quick install:
 
