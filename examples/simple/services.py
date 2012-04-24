@@ -5,7 +5,7 @@ bridge = Bridge(api_key='myapikey')
 #
 # Publishing a Bridge service
 #
-# Any Javascript object can be published. A published service 
+# Any Python object can be published. A published service 
 # can be retrieved by any Bridge client with the same API key pair.
 #
 # Only Bridge clients using the prviate API key may publish services.

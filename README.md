@@ -1,5 +1,5 @@
 # Flotype Bridge for Python
-Flotype Bridge enables cross-language RPC for interserver and client-server communication.
+Flotype Bridge is a unified messaging system that allows you to easily build cross-language services to share data and realtime updates among your servers and your clients
 
 ## Installation
 Quick install:
@@ -13,7 +13,8 @@ Source install:
 	python setup.py install
 
 ## Dependencies
-[Tornado](http://www.tornadoweb.org).
+[Tornado](http://www.tornadoweb.org) for asynchronous socket library and
+event loop. (NOT for Tornado web server)
 
 Quick install:
 
