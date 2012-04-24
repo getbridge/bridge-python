@@ -88,7 +88,7 @@ class Bridge(object):
 
         @param name: The name of the service.
         @param handler: Any class with a default constructor, or any instance.
-        @param callback: Called (with no arguments) when the service has been
+        @param callback: Called (with name of service as argument) when the service has been
         published.
         '''
         if name == 'system':
@@ -99,6 +99,20 @@ class Bridge(object):
             if callback:
                 data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
+            
+    def unpublish_service(self, name, handler, callback=None):
+        '''Stops publishing a service to Bridge.
+
+        @param name: The name of the service.
+        @param callback: Called (with name of service as argument) when the service has stopped being published.
+        '''
+        if name == 'system':
+            logging.error('Invalid service name: %s', name)
+        else:
+            data = {'name': name}
+            if callback:
+                data['callback'] = serializer.serialize(self, callback)
+            self._connection.send_command('LEAVEWORKERPOOL', data)
 
     def get_service(self, name):
         '''Fetch a service from Bridge.
@@ -123,7 +137,7 @@ class Bridge(object):
 
         @param name: The name of the channel.
         @param handler: An opaque reference to a channel.
-        @param callback: Called (with no arguments) after the handler has been
+        @param callback: Called (with reference to channel, and name of channel) after the handler has been
         attached to the channel.
         '''
         data = {'name': name, 'handler': serializer.serialize(self, handler)}
@@ -136,7 +150,7 @@ class Bridge(object):
 
         @param name: The name of the channel.
         @param handler: An opaque reference to a channel.
-        @param callback: Called (with no arguments) after the handler has been
+        @param callback: Called (with name of channel as argument) after the handler has been
         attached to the channel.
         '''
         data = {'name': name, 'handler': serializer.serialize(self, handler)}
