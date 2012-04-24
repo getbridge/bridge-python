@@ -100,7 +100,7 @@ class Bridge(object):
                 data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
             
-    def unpublish_service(self, name, handler, callback=None):
+    def unpublish_service(self, name, callback=None):
         '''Stops publishing a service to Bridge.
 
         @param name: The name of the service.
