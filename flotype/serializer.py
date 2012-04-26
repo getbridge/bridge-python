@@ -16,7 +16,7 @@ class Callback(object):
     def callback(self, *args):
         # Callback method so callbacks make sense to statically typed languages
         cb = self.wrap[0]
-        cb(*args)
+        return cb(*args)
 
 def serialize(bridge, obj):
     # Enumerate array and serialize each member
@@ -49,6 +49,8 @@ def unserialize(bridge, obj):
         ops = ref.get('operations', [])
         if address[1] == bridge._connection.client_id and address[0] == 'client':
             container[key] = bridge._store[address[2]]
+            if hasattr(container[key], 'callback'):
+                container[key] = container[key].wrap[0]
         else:           
             # Create reference
             ref = reference.Reference(bridge, address, ops)
