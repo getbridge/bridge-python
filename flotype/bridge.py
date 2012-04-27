@@ -216,10 +216,8 @@ class _SystemService(object):
         self._bridge = bridge
 
     def hookChannelHandler(self, name, handler, func=None):
-        # Retrieve requested handler
-        obj = self._bridge._store[handler._address[2]]
         # Store under channel name
-        self._bridge._store['channel:' + name] = obj
+        self._bridge._store['channel:' + name] = handler
         if func:
             # Send callback with reference to channel and handler operations        
             func(reference.Reference(self, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
