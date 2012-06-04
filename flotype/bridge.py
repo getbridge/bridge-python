@@ -37,7 +37,7 @@ class Bridge(object):
         self._options['reconnect'] = kwargs.get('reconnect', True)
 
         util.set_log_level(self._options['log'])
-        
+
         # Initialize system service call
         self._store = {
             'system': _SystemService(self)
@@ -99,7 +99,7 @@ class Bridge(object):
             if callback:
                 data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
-            
+
     def unpublish_service(self, name, callback=None):
         '''Stops publishing a service to Bridge.
 
@@ -209,7 +209,7 @@ class Bridge(object):
         self._connection.send_command('SEND', {
             'args': serializer.serialize(self, args),
             'destination': destination,
-        })            
+        })
 
 class _SystemService(object):
     def __init__(self, bridge):
@@ -219,7 +219,7 @@ class _SystemService(object):
         # Store under channel name
         self._bridge._store['channel:' + name] = handler
         if func:
-            # Send callback with reference to channel and handler operations        
+            # Send callback with reference to channel and handler operations
             func(reference.Reference(self, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
 
     def getService(self, name, func):

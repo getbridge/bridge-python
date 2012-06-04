@@ -12,7 +12,6 @@ from tornado.httpclient import HTTPClient, HTTPError
 
 from flotype import util, serializer, tcp
 
-
 class Connection(object):
     def __init__(self, bridge):
         # Set associated bridge object
