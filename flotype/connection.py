@@ -110,6 +110,8 @@ class Connection(object):
         if not destination:
             logging.warning('No destination in message %s', obj)
             return
+        if 'source' in message:
+            self.bridge._context = Client(message['source'])
         self.bridge._execute(destination['ref'], obj['args'])
    
     def onopen(self, sock):

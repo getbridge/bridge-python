@@ -52,6 +52,8 @@ class Bridge(object):
         # Store event handlers
         self._events = defaultdict(list)
 
+        self._context = None;
+
     def on(self, name, func):
         '''Registers a callback for the specified event.
 
@@ -182,6 +184,9 @@ class Bridge(object):
         if callback:
             self.ready(callback)
         self._connection.start()
+
+    def getClient(self, id):
+        return Client(self, id)
 
     def _execute(self, address, args):
         # Retrieve stored handler
