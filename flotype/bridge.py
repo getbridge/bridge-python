@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-from flotype import util, connection, reference, serializer
+from flotype import util, connection, reference, serializer, client
 
 '''
 @package bridge
