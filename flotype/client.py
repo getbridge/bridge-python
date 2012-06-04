@@ -1,4 +1,4 @@
-from flotype import serializer
+from flotype import serializer, reference
 
 class Client(object):
     def __init__(self, bridge, id):
