@@ -4,4 +4,4 @@ class Client(object):
     def __init__(self, bridge, id):
         self.bridge, self.clientId = bridge, id;
     def get_service(self, svc):
-        return reference.Reference(self, ['client', id, svc])
+        return reference.Reference(self.bridge, ['client', self.id, svc])
