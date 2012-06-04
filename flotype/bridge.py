@@ -185,7 +185,7 @@ class Bridge(object):
             self.ready(callback)
         self._connection.start()
 
-    def getClient(self, id):
+    def get_client(self, id):
         return Client(self, id)
 
     def _execute(self, address, args):
