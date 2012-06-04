@@ -10,7 +10,7 @@ from tornado import ioloop, iostream
 from tornado.escape import native_str
 from tornado.httpclient import HTTPClient, HTTPError
 
-from flotype import util, serializer, tcp
+from flotype import util, serializer, tcp, client
 
 class Connection(object):
     def __init__(self, bridge):
@@ -111,7 +111,7 @@ class Connection(object):
             logging.warning('No destination in message %s', obj)
             return
         if 'source' in message:
-            self.bridge._context = Client(message['source'])
+            self.bridge._context = client.Client(message['source'])
         self.bridge._execute(destination['ref'], obj['args'])
    
     def onopen(self, sock):

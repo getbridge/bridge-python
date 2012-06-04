@@ -186,7 +186,7 @@ class Bridge(object):
         self._connection.start()
 
     def get_client(self, id):
-        return Client(self, id)
+        return client.Client(self, id)
 
     def _execute(self, address, args):
         # Retrieve stored handler
