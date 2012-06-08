@@ -1,9 +1,13 @@
 import sys
 import struct
 import socket
+import ssl
 
 from tornado import iostream
 from tornado.escape import utf8, native_str
+
+from flotype import data
+import os.path
 
 class Tcp(object):
     def __init__(self, connection):
@@ -11,8 +15,16 @@ class Tcp(object):
         # Start socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        # Create IOStream for TCP connection
-        self.stream = iostream.IOStream(self.socket)
+        if connection.options["secure"]:
+            cert_dir = os.path.split(data.__file__)[0]
+            cert_file = os.path.join(cert_dir, "flotype.crt")
+            ssl.wrap_socket(self.socket, cert_reqs=ssl.CERT_REQUIRED, \
+                    ca_certs=cert_file)
+            # Use SSL IO Stream for secure connection
+            self.stream = iostream.SSLIOStream(self.socket)
+        else:
+            # Create IOStream for TCP connection
+            self.stream = iostream.IOStream(self.socket)
         server = (self.connection.options['host'], self.connection.options['port'])
         self.stream.connect(server, self.onopen)
         self.stream.set_close_callback(self.connection.onclose)
