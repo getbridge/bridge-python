@@ -132,15 +132,19 @@ class Bridge(object):
         self._connection.send_command('GETCHANNEL', {'name': name})
         return reference.Reference(self, ['channel', name, 'channel:' + name])
 
-    def join_channel(self, name, handler, callback=None):
+    def join_channel(self, name, handler, writeable=False, callback=None):
         '''Register a handler with a channel.
 
         @param name: The name of the channel.
         @param handler: An opaque reference to a channel.
+        @param writeable: Whether the handler's owner may write to the channel.
         @param callback: Called (with reference to channel, and name of channel) after the handler has been
         attached to the channel.
         '''
-        data = {'name': name, 'handler': serializer.serialize(self, handler)}
+        if hasattr(writeable, '__call__'):
+            util.warn('Deprecated -- the joinChannel API has been revised.')
+            writeable, callback = callback, writeable
+        data = {'name': name, 'handler': serializer.serialize(self, handler), 'writeable': writeable}
         if callback:
             data['callback'] = serializer.serialize(self, callback)
         self._connection.send_command('JOINCHANNEL', data)
