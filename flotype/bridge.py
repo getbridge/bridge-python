@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-from flotype import util, connection, reference, serializer
+from flotype import util, connection, reference, serializer, client
 
 '''
 @package bridge
@@ -43,7 +43,7 @@ class Bridge(object):
             self._options['redirector'] = self._options['secure_redirector']
 
         util.set_log_level(self._options['log'])
-        
+
         # Initialize system service call
         self._store = {
             'system': _SystemService(self)
@@ -57,6 +57,8 @@ class Bridge(object):
 
         # Store event handlers
         self._events = defaultdict(list)
+
+        self._context = None;
 
     def on(self, name, func):
         '''Registers a callback for the specified event.
@@ -105,7 +107,7 @@ class Bridge(object):
             if callback:
                 data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
-            
+
     def unpublish_service(self, name, callback=None):
         '''Stops publishing a service to Bridge.
 
@@ -189,6 +191,9 @@ class Bridge(object):
             self.ready(callback)
         self._connection.start()
 
+    def get_client(self, id):
+        return client.Client(self, id)
+
     def _execute(self, address, args):
         # Retrieve stored handler
         obj = self._store[address[2]]
@@ -215,7 +220,7 @@ class Bridge(object):
         self._connection.send_command('SEND', {
             'args': serializer.serialize(self, args),
             'destination': destination,
-        })            
+        })
 
 class _SystemService(object):
     def __init__(self, bridge):
@@ -225,7 +230,7 @@ class _SystemService(object):
         # Store under channel name
         self._bridge._store['channel:' + name] = handler
         if func:
-            # Send callback with reference to channel and handler operations        
+            # Send callback with reference to channel and handler operations
             func(reference.Reference(self, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
 
     def getService(self, name, func):
