@@ -198,6 +198,9 @@ class Bridge(object):
     def get_client(self, id):
         return client.Client(self, id)
 
+    def context(self):
+        return self._context
+
     def _execute(self, address, args):
         # Retrieve stored handler
         obj = self._store[address[2]]
