@@ -150,7 +150,7 @@ class Bridge(object):
         attached to the channel.
         '''
         if hasattr(writeable, '__call__'):
-            util.warn('Deprecated -- the joinChannel API has been revised.')
+            logging.warn('Deprecated -- the joinChannel API has been revised.')
             writeable, callback = True, writeable
         data = {'name': name, 'handler': serializer.serialize(self, handler), 'writeable': writeable}
         if callback:
