@@ -6,7 +6,7 @@ import ssl
 from tornado import iostream
 from tornado.escape import utf8, native_str
 
-from flotype import data
+from BridgePython import data
 import os.path
 
 class Tcp(object):
@@ -17,7 +17,7 @@ class Tcp(object):
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if connection.options["secure"]:
             cert_dir = os.path.split(data.__file__)[0]
-            cert_file = os.path.join(cert_dir, "flotype.crt")
+            cert_file = os.path.join(cert_dir, "BridgePythoncrt")
             ssl.wrap_socket(self.socket, cert_reqs=ssl.CERT_REQUIRED, \
                     ca_certs=cert_file)
             # Use SSL IO Stream for secure connection

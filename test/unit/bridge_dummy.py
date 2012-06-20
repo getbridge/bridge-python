@@ -2,7 +2,7 @@ import reference_dummy
 
 class BridgeDummy():
     def __init__(self):
-        self.options = { 'redirector': 'http://redirector.flotype.com',
+        self.options = { 'redirector': 'http://redirector.getbridge.com',
                          'reconnect': True,
                          'log': 2 # 0 for no output
                         }

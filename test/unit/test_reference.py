@@ -1,5 +1,5 @@
-from flotype.bridge import Bridge
-from flotype import reference
+from BridgePython.bridge import Bridge
+from BridgePython import reference
 from bridge_dummy import BridgeDummy
 import unittest
  

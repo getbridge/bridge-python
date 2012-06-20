@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import logging
-from flotype.bridge import Bridge
+from BridgePython.bridge import Bridge
 
 bridge = Bridge(host='localhost', port=8090, log_level=logging.DEBUG,
         api_key='abcdefgh', reconnect=True)

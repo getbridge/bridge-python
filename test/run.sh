@@ -1,4 +1,4 @@
 #!/bin/sh
 
-export PYTHONPATH=PYTHONPATH:../FlotypeBridge/
+export PYTHONPATH=PYTHONPATH:../BridgePython/
 python tests.py

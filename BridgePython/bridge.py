@@ -2,7 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
-from flotype import util, connection, reference, serializer, client
+from BridgePython import util, connection, reference, serializer, client
 
 '''
 @package bridge
@@ -20,7 +20,7 @@ class Bridge(object):
         @keyword api_key: Bridge cloud api key. No default.
         @keyword log: Specifies a log level. Defaults to logging.WARNING.
         @keyword redirector: Bridge redirector. Defaults to
-        http://redirector.flotype.com.
+        http://redirector.getbridge.com.
         @keyword host: Bridge host. No default. Set a value to disable
         redirector based connect.
         @keyword port: Bridge port. No default. Set a value to disable
@@ -31,9 +31,9 @@ class Bridge(object):
         self._options = {}
         self._options['api_key'] = kwargs.get('api_key')
         self._options['log'] = kwargs.get('log', logging.WARNING)
-        self._options['redirector'] = kwargs.get('redirector', 'http://redirector.flotype.com')
+        self._options['redirector'] = kwargs.get('redirector', 'http://redirector.getbridge.com')
         self._options['secure_redirector'] = kwargs.get('secure_redirector',
-                'https://redirector.flotype.com')
+                'https://redirector.getbridge.com')
         self._options['host'] = kwargs.get('host')
         self._options['port'] = kwargs.get('port')
         self._options['reconnect'] = kwargs.get('reconnect', True)

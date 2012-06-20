@@ -1,14 +1,16 @@
-# Flotype Bridge for Python
-Flotype Bridge is a unified messaging system that allows you to easily build cross-language services to share data and realtime updates among your servers and your clients
+# Bridge for Python
+Bridge is a unified messaging system that allows you to easily build
+cross-language services to share data and realtime updates among your
+servers and your clients
 
 ## Installation
 Quick install:
 
-	pip install FlotypeBridge
+	pip install BridgePython
 
 Source install:
 
-	git clone git@bitbucket.org:flotype/bridge-python.git
+	git clone git@bitbucket.org:getbridge/bridge-python.git
 	cd bridge-python/
 	python setup.py install
 
@@ -21,13 +23,13 @@ Quick install:
 	pip install tornado
 
 ## Documentation and Support
-* API Reference: http://flotype.com/docs/api/python/
-* Getting Started: http://www.flotype.com/docs/gettingstarted/python/
-* About Flotype and Flotype Bridge: http://www.flotype.com/
+* API Reference: http://getbridge.com/docs/api/python/
+* Getting Started: http://www.getbridge.com/docs/gettingstarted/python/
+* About Bridge: http://www.getbridge.com/
 
-The `examples` directory of this library contains sample applications for Flotype Bridge.
+The `examples` directory of this library contains sample applications for Bridge.
 
-Support is available in #flotype on Freenode IRC or the Flotype Bridge Google Group.
+Support is available in #getbridge on Freenode IRC or the Bridge Google Group.
 
 ## License
-Flotype Bridge is made available under the MIT/X11 license. See the LICENSE file for details.
+Bridge is made available under the MIT/X11 license. See the LICENSE file for details.

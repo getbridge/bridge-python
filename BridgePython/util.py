@@ -7,7 +7,7 @@ import json
 
 from tornado.escape import utf8, native_str
 
-from flotype import reference
+from BridgePython import reference
 
 primitives = set((int, str, bool, float, tuple, list, dict, type(None)))
 try:

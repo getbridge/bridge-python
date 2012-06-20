@@ -1,4 +1,4 @@
-from flotype.bridge import Bridge
+from BridgePython.bridge import Bridge
 
 class AuthHandler(object):
   def join(self, room, password, obj, callback):

@@ -4,7 +4,7 @@ import string
 import logging
 import traceback
 
-from flotype import reference, util
+from BridgePython import reference, util
 
 
 

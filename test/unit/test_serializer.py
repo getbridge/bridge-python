@@ -1,5 +1,5 @@
-from flotype.bridge import Bridge
-from flotype import util, connection, reference, serializer
+from BridgePython.bridge import Bridge
+from BridgePython import util, connection, reference, serializer
 
 from bridge_dummy import BridgeDummy
 import reference_dummy

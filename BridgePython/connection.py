@@ -10,7 +10,7 @@ from tornado import ioloop, iostream
 from tornado.escape import native_str
 from tornado.httpclient import HTTPClient, HTTPError
 
-from flotype import util, serializer, tcp, client
+from BridgePython import util, serializer, tcp, client
 
 class Connection(object):
     def __init__(self, bridge):

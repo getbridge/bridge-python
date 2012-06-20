@@ -1,4 +1,4 @@
-from flotype.bridge import Bridge
+from BridgePython.bridge import Bridge
 bridge = Bridge(api_key='myapikey')
 
 class ChatHandler(object):
@@ -11,7 +11,7 @@ def join_callback(channel, name):
     channel.message('steve', 'Can write to channel')
 
 auth = bridge.get_service('auth')
-auth.join_writeable('flotype-lovers', "secret123", ChatHandler(), join_callback)
+auth.join_writeable('bridge-lovers', "secret123", ChatHandler(), join_callback)
 
 bridge.connect()
 

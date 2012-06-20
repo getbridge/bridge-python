@@ -1,5 +1,5 @@
-from flotype.bridge import Bridge
-from flotype import tcp as net
+from BridgePython.bridge import Bridge
+from BridgePython import tcp as net
 
 from connection_dummy import ConnectionDummy
 import unittest

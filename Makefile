@@ -1,2 +1,2 @@
-doc: flotype/
-	epydoc -v --html flotype/bridge.py -o doc
+doc: BridgePython/
+	epydoc -v --html BridgePython/bridge.py -o doc
