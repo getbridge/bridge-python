@@ -238,7 +238,7 @@ class _SystemService(object):
         self._bridge._store['channel:' + name] = handler
         if func:
             # Send callback with reference to channel and handler operations
-            func(reference.Reference(self, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
+            func(reference.Reference(self._bridge, ['channel', name, 'channel:' + name], util.find_ops(handler)), name)
 
     def getService(self, name, func):
         if name in self._bridge._store:

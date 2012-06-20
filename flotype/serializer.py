@@ -32,7 +32,10 @@ def serialize(bridge, obj):
 def serialize_atom(bridge, atom):
     # Store as callback if callable
     if callable(atom):
-        return bridge._store_object(Callback(atom), ['callback'])._to_dict()
+        if getattr(atom, '_reference', None) is not None:
+            return atom._reference._to_dict()
+        else:
+            return bridge._store_object(Callback(atom), ['callback'])._to_dict()
     # Call to_dict if reference
     elif isinstance(atom, reference.Reference):
         return atom._to_dict()
