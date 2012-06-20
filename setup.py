@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='BridgePython',
     version='0.2.0',
-    author='Flotype Inc.',
+    author='',
     author_email='team@getbridge.com',
     packages=['BridgePython', 'BridgePython.data'],
     url='http://pypi.python.org/pypi/BridgePython/',
