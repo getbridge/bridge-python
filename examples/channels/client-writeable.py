@@ -7,10 +7,11 @@ class ChatHandler(object):
 
 def join_callback(channel, name):
     print "Joined channel: %s" % name
-    # The following RPC call will fail because client was not joined to channel with write permissions
-    channel.message('steve', 'This should not work')
+    # The following RPC call will succeed because client was joined to channel with write permissions
+    channel.message('steve', 'Can write to channel')
 
 auth = bridge.get_service('auth')
-auth.join('flotype-lovers', ChatHandler(), join_callback)
+auth.join_writeable('flotype-lovers', "secret123", ChatHandler(), join_callback)
 
 bridge.connect()
+
