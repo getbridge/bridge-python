@@ -1,4 +1,4 @@
-from BridgePython.bridge import Bridge
+from BridgePython import Bridge
 
 class AuthHandler(object):
   def join(self, room, password, obj, callback):

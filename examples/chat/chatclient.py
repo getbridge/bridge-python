@@ -1,4 +1,4 @@
-from BridgePython.bridge import Bridge
+from BridgePython import Bridge
     
 bridge = Bridge(api_key='myapikey') # new code: using public key
 
