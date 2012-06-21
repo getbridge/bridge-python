@@ -108,6 +108,17 @@ class Bridge(object):
                 data['callback'] = serializer.serialize(self, callback)
             self._connection.send_command('JOINWORKERPOOL', data)
 
+    def store_service(self, name, handler):
+        '''Store an object in Bridge.
+
+        @param name: The name of the object to store.
+        @param handler: Any class with a default constructor, or any instance.
+        '''
+        if name == 'system':
+            logging.error('Invalid service name: %s', name)
+        else:
+            self._store[name] = handler
+
     def unpublish_service(self, name, callback=None):
         '''Stops publishing a service to Bridge.
 
