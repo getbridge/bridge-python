@@ -10,7 +10,7 @@ Quick install:
 
 Source install:
 
-	git clone git@bitbucket.org:getbridge/bridge-python.git
+	git clone git@bitbucket.com:getbridge/bridge-python.git
 	cd bridge-python/
 	python setup.py install
 
