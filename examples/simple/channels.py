@@ -19,8 +19,8 @@ def start():
     class TestHandler(object):
         def log(self, msg):
             print('Got message: %s' % (msg));
-            
-    bridge.join_channel('testChannel', TestHandler(), ready)
+
+    bridge.join_channel('testChannel', TestHandler(), callback=ready)
 
 
 #
