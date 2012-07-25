@@ -5,7 +5,7 @@ class AuthHandler(object):
     if password == "secret123":
       print ('Welcome!')
       # new: join channel using the client's objects
-      bridge.join_channel(room, obj, callback) 
+      bridge.join_channel(room, obj, callback=callback)
     else:
       print ('Sorry!')
 
